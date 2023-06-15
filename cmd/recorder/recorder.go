@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	config.Main()
+	config.LoadConfig()
 }

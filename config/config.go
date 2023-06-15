@@ -1,18 +1,26 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
-// Config is the configuration for the recorder
-func Main() error {
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	viper.SetConfigType("env")
-	viper.AutomaticEnv()
+var Viper *viper.Viper
 
-	if err := viper.ReadInConfig(); err != nil {
-		return err
+// Config is a struct that holds the configuration for the application
+func LoadConfig() *viper.Viper {
+	vp := viper.New()
+	vp.SetConfigName("config")
+	vp.SetConfigType("env")
+	vp.AddConfigPath("../config")
+	vp.AutomaticEnv()
+	if err := vp.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", vp.ConfigFileUsed())
+		Viper = vp
+		return vp
+	} else {
+		fmt.Println("Error loading config file:", err)
+		return nil
 	}
-	return nil
 }
