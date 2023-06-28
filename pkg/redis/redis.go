@@ -36,3 +36,7 @@ func Redis_get(key string) string {
 	val, _ := RedisClient.Get(context.Background(), key).Result()
 	return val
 }
+
+func Redis_append(key string, value string) {
+	RedisClient.Append(context.Background(), key, value)
+}

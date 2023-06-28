@@ -1,9 +1,7 @@
 package main
 
-import (
-	config "recorder/config"
-)
+import "recorder/internal/server"
 
 func main() {
-	config.LoadConfig()
+	server.Start_server()
 }

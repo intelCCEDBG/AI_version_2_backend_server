@@ -8,7 +8,7 @@ import (
 
 var DB *sql.DB
 
-func InitDB() error {
+func ConnectDB() error {
 	var err error
 	dbUser := config.Viper.GetString("MARIA_USER")
 	dbPass := config.Viper.GetString("MARIA_PASSWORD")

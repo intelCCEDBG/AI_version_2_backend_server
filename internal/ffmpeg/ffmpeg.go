@@ -9,6 +9,7 @@ import (
 	"recorder/internal/machine"
 	"recorder/pkg/logger"
 	"syscall"
+	"time"
 )
 
 func init() {
@@ -17,12 +18,14 @@ func init() {
 	}
 }
 
-func record(ch chan<- string, mh machine.Machine, ctx context.Context) {
+func Record(ch chan<- string, mh *machine.Machine, ctx context.Context) {
 	hostname := mh.Hostname
 	url := mh.Stream_url + "&localaddr=" + mh.Stream_interface
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
 	image_path := config.Viper.GetString("IMAGE_PATH") + hostname + "/"
-	cmd := exec.Command("ffmpeg", "-loglevel", "quite", "-i", url, "-c", "copy", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"%07d.m3u8", video_path+"%07d.ts", "-vf", "fps=1", image_path+hostname+".png")
+	cmd := exec.Command("ffmpeg", "-loglevel", "quite", "-i", url,
+		"-c", "copy", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"%07d.m3u8", video_path+"%07d.ts",
+		"-vf", "fps=1", image_path+hostname+".png")
 	_, err := cmd.StdoutPipe()
 	if err != nil {
 		logger.Error(err.Error())
@@ -32,6 +35,7 @@ func record(ch chan<- string, mh machine.Machine, ctx context.Context) {
 		logger.Error(err.Error())
 	}
 	err = cmd.Start()
+	mh.Start_record_time = time.Now().Unix()
 	if err != nil {
 		logger.Error(err.Error())
 	}

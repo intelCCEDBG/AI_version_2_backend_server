@@ -12,8 +12,8 @@ func Get_machine_list() {
 		logger.Error("Query idle machine error: " + err.Error())
 	}
 	for Idle_list.Next() {
-		var tmp machine.Machine
-		err := Idle_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_pid, &tmp.Stream_interface)
+		var tmp = new(machine.Machine)
+		err := Idle_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_interface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -26,8 +26,8 @@ func Get_machine_list() {
 		logger.Error("Query idle machine error: " + err.Error())
 	}
 	for Recording_list.Next() {
-		var tmp machine.Machine
-		err := Recording_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_pid, &tmp.Stream_interface)
+		var tmp = new(machine.Machine)
+		err := Recording_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_interface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
