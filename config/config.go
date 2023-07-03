@@ -2,7 +2,8 @@ package config
 
 import (
 	"fmt"
-
+	"os"
+	"path"
 	"github.com/spf13/viper"
 )
 
@@ -11,9 +12,12 @@ var Viper *viper.Viper
 // Config is a struct that holds the configuration for the application
 func LoadConfig() *viper.Viper {
 	vp := viper.New()
+	dirname, _ := os.Getwd()
+	dirname = path.Join(dirname, "../../")
+	dirname = path.Join(dirname, "config")
+	vp.AddConfigPath(dirname)
 	vp.SetConfigName("config")
 	vp.SetConfigType("env")
-	vp.AddConfigPath("../config")
 	vp.AutomaticEnv()
 	if err := vp.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", vp.ConfigFileUsed())

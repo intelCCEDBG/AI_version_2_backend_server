@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"recorder/config"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var DB *sql.DB

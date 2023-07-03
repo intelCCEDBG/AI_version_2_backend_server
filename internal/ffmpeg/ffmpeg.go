@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"recorder/config"
-	"recorder/internal/machine"
+	"recorder/internal/kvm"
 	"recorder/pkg/logger"
 	"syscall"
 	"time"
@@ -18,14 +18,31 @@ func init() {
 	}
 }
 
-func Record(ch chan<- string, mh *machine.Machine, ctx context.Context) {
+func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 	hostname := mh.Hostname
-	url := mh.Stream_url + "&localaddr=" + mh.Stream_interface
+	url := mh.Stream_url
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
 	image_path := config.Viper.GetString("IMAGE_PATH") + hostname + "/"
-	cmd := exec.Command("ffmpeg", "-loglevel", "quite", "-i", url,
-		"-c", "copy", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"%07d.m3u8", video_path+"%07d.ts",
-		"-vf", "fps=1", image_path+hostname+".png")
+	if _, err := os.Stat(video_path); os.IsNotExist(err) {
+		err := os.Mkdir(video_path, 0777)
+		if err != nil{
+			logger.Error(err.Error())
+		}
+		// TODO: handle error
+	}
+	if _, err := os.Stat(image_path); os.IsNotExist(err) {
+		err := os.Mkdir(image_path, 0777)
+		if err != nil{
+			logger.Error(err.Error())
+		}
+		// TODO: handle error
+	}
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-i", url,
+		"-c", "copy", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"all.m3u8", video_path+"%07d.ts",
+		"-vf", "fps=0.2", "-update",image_path+hostname+".png")
+	logger.Info("ffmpeg "+"-loglevel "+"quiet "+ "-i "+ url+
+	" -c "+ "copy "+ "-f "+ "segment "+ "-segment_time "+ "10 "+ "-segment_list "+ video_path+"all.m3u8 "+ video_path+"%07d.ts "+
+	"-vf "+ "fps=1 "+"-update "+ image_path+hostname+".png")
 	_, err := cmd.StdoutPipe()
 	if err != nil {
 		logger.Error(err.Error())

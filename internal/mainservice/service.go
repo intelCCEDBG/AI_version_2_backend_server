@@ -3,28 +3,48 @@ package service
 import (
 	"context"
 	"recorder/internal/ffmpeg"
-	"recorder/internal/machine"
+	"recorder/internal/kvm"
 	"recorder/pkg/logger"
+	"os/signal"
+	"os"
+	"syscall"
+	"fmt"
+	"time"
 )
 
 var Stop_channel map[string]context.CancelFunc
 var Stop_signal_out_channel chan string
+func init(){
+	Stop_channel = make(map[string]context.CancelFunc)
+}
 
 func Start_service() {
-	get_recording_machine_back()
+	Connection_close := make(chan int, 1)
+	get_recording_kvm_back()
 	go monitor_stop_signal()
-
+	Quit := make(chan os.Signal, 1)
+	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
+	<-Quit
+	fmt.Println("Server is shutting down...")
+	servershutdown()
+	select {
+	case <-Connection_close:
+		logger.Info("Connection closed")
+	case <-time.After(5 * time.Second):
+		logger.Info("Connection close fail, force shutdown after 5 seconds")
+	}
+	fmt.Println("Server shutdown complete.")
 }
 func monitor_stop_signal() {
 	for {
 		hostname := <-Stop_signal_out_channel
 		logger.Info(hostname + " stop recording")
-		machine.RecordtoIdle(hostname)
+		kvm.RecordtoIdle(hostname)
 	}
 }
-
-func get_recording_machine_back() {
-	for _, element := range machine.Recording_machine {
+func servershutdown(){}
+func get_recording_kvm_back() {
+	for _, element := range kvm.Recording_kvm {
 		ctx, cancel := context.WithCancel(context.Background())
 		Stop_channel[element.Hostname] = cancel
 		go ffmpeg.Record(Stop_signal_out_channel, element, ctx)
