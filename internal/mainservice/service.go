@@ -2,19 +2,20 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/signal"
 	"recorder/internal/ffmpeg"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
-	"os/signal"
-	"os"
 	"syscall"
-	"fmt"
 	"time"
 )
 
 var Stop_channel map[string]context.CancelFunc
 var Stop_signal_out_channel chan string
-func init(){
+
+func init() {
 	Stop_channel = make(map[string]context.CancelFunc)
 }
 
@@ -42,7 +43,10 @@ func monitor_stop_signal() {
 		kvm.RecordtoIdle(hostname)
 	}
 }
-func servershutdown(){}
+func servershutdown() {
+	stop_recording_all()
+
+}
 func get_recording_kvm_back() {
 	for _, element := range kvm.Recording_kvm {
 		ctx, cancel := context.WithCancel(context.Background())
