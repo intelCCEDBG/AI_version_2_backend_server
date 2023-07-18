@@ -3,12 +3,12 @@ package ffmpeg
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"recorder/config"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
-	"syscall"
 	"time"
 )
 
@@ -38,10 +38,10 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 		// TODO: handle error
 	}
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-i", url,
-		"-c", "copy", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"all.m3u8", "-strftime", "1", video_path+"%Y-%m-%d_%H-%M-%S.ts",
+		"-codec", "libx264", "-preset", "ultrafast", "-qp", "0", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"all.m3u8", "-strftime", "1", video_path+"%Y-%m-%d_%H-%M-%S.ts",
 		"-vf", "fps=0.2", "-update", image_path+hostname+".png")
 	logger.Info(cmd.String())
-	_, err := cmd.StdoutPipe()
+	in, err := cmd.StdinPipe()
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -49,6 +49,7 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 	if err != nil {
 		logger.Error(err.Error())
 	}
+	// logger.Info("test1")
 	err = cmd.Start()
 	mh.Start_record_time = time.Now().Unix()
 	if err != nil {
@@ -60,7 +61,8 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 	}()
 	select {
 	case <-ctx.Done():
-		err := cmd.Process.Signal(syscall.SIGINT)
+		fmt.Println("send exit signal")
+		io.WriteString(in, "q")
 		if err != nil {
 			logger.Error(err.Error())
 		}
