@@ -7,6 +7,7 @@ import (
 	service "recorder/internal/mainservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb"
+	"recorder/cmd/backend"
 )
 
 func Start_server() {
@@ -18,7 +19,7 @@ func Start_server() {
 		logger.Error("Connect to mariadb error: " + err.Error())
 		return
 	}
-	
+	backend.Start_backend()
 	loadstatus.Loadstatus()
 	service.Start_service()
 }

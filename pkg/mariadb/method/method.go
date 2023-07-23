@@ -5,6 +5,11 @@ import (
 	"recorder/pkg/mariadb"
 )
 
+func QueryRow(query string, args ...interface{}) (*sql.Row) {
+	return mariadb.DB.QueryRow(query, args...)
+
+}
+
 func Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return mariadb.DB.Query(query, args...)
 
