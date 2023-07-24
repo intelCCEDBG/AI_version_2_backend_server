@@ -1,16 +1,31 @@
-package backend
+package main
 
 import (
-	"github.com/gin-contrib/cors"
-    "github.com/gin-gonic/gin"
+	"fmt"
+	dbghost_api "recorder/api/debug_host"
+	dut_api "recorder/api/dut"
+	kvm_api "recorder/api/kvm"
 	"recorder/config"
-	"recorder/api/kvm"
-	"recorder/api/debug_host"
-	"recorder/api/dut"
+	"recorder/pkg/logger"
+	"recorder/pkg/mariadb"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
-
+func main() {
+	fmt.Println("Starting server...")
+	config.LoadConfig()
+	logger.InitLogger(config.Viper.GetString("LOG_FILE_PATH"))
+	err := mariadb.ConnectDB()
+	if err != nil {
+		logger.Error("Connect to mariadb error: " + err.Error())
+		return
+	}
+	Start_backend()
+}
 func Start_backend() {
+
 	// init setup
 	router := gin.Default()
 	corsConfig := cors.DefaultConfig()
@@ -35,9 +50,7 @@ func Start_backend() {
 	router.GET("/api/dut/info", dut_api.Dut_info)
 	router.GET("/api/dut/search", dut_api.Dut_search)
 
-
 	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
-
 
 	router.Run(":" + Port)
 }
