@@ -20,7 +20,7 @@ type ApiResponse struct {
 }
 
 type Kvmlist_Response struct {
-	Hostname string `json:"hostname"`
+	Hostname []string `json:"hostname"`
 }
 
 type Kvm struct {
@@ -45,16 +45,16 @@ type Debug_unit struct {
 
 func Kvm_list(c *gin.Context) {
 	extra := c.Query("extra")
-	var Kvm_list []Kvmlist_Response
+	var Kvm_list Kvmlist_Response
 	if extra == "empty" {
 		rows, err := method.Query("select hostname from kvm where not exists(select 1 from debug_unit where kvm.hostname=debug_unit.hostname)")
 		if err != nil {
 			logger.Error("Query empty kvm list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Kvmlist_Response
-			err = rows.Scan(&tmp.Hostname)
-			Kvm_list = append(Kvm_list, tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Kvm_list.Hostname = append(Kvm_list.Hostname, tmp)
 		}
 	} else {
 		rows, err := method.Query("SELECT hostname FROM kvm")
@@ -62,9 +62,9 @@ func Kvm_list(c *gin.Context) {
 			logger.Error("Query kvm list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Kvmlist_Response
-			err = rows.Scan(&tmp.Hostname)
-			Kvm_list = append(Kvm_list, tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Kvm_list.Hostname = append(Kvm_list.Hostname, tmp)
 		}
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Kvm_list)
