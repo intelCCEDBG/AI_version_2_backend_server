@@ -10,7 +10,7 @@ import (
 )
 
 type Dutlist_Response struct {
-	Machine_name			string	`json:"machine"`
+	Machine_name		[]string	`json:"machine"`
 }
 
 type Dut struct{
@@ -24,16 +24,16 @@ type Dut struct{
 
 func Dut_list(c *gin.Context) {
 	extra := c.Query("extra")
-	var Dut_list []Dutlist_Response
+	var Dut_list Dutlist_Response
 	if extra == "empty"{
 		rows, err := method.Query("select machine_name from machine where not exists(select 1 from debug_unit where machine.machine_name=debug_unit.machine_name);")
 		if err != nil {
 			logger.Error("Query empty dut list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dutlist_Response
-			err = rows.Scan(&tmp.Machine_name)
-			Dut_list = append(Dut_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dut_list.Machine_name = append(Dut_list.Machine_name,tmp)
 		}
 	}else{
 		rows, err := method.Query("SELECT machine_name from machine")
@@ -41,9 +41,9 @@ func Dut_list(c *gin.Context) {
 			logger.Error("Query dut list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dutlist_Response
-			err = rows.Scan(&tmp.Machine_name)
-			Dut_list = append(Dut_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dut_list.Machine_name = append(Dut_list.Machine_name,tmp)
 		}		
 	}
 

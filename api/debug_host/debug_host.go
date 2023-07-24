@@ -10,7 +10,7 @@ import (
 )
 
 type Dbghostlist_Response struct {
-	Ip			string	`json:"ip"`
+	Ip			[]string	`json:"ip"`
 }
 
 type Dbg_host struct{
@@ -21,16 +21,16 @@ type Dbg_host struct{
 
 func Dbghost_list(c *gin.Context) {
 	extra := c.Query("extra")
-	var Dbghost_list []Dbghostlist_Response
+	var Dbghost_list Dbghostlist_Response
 	if extra == "empty"{
 		rows, err := method.Query("select ip from debug_host where not exists(select 1 from debug_unit where debug_host.ip=debug_unit.ip);")
 		if err != nil {
 			logger.Error("Query empty debug host list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dbghostlist_Response
-			err = rows.Scan(&tmp.Ip)
-			Dbghost_list = append(Dbghost_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dbghost_list.Ip = append(Dbghost_list.Ip,tmp)
 		}
 	}else{
 		rows, err := method.Query("SELECT ip from debug_host")
@@ -38,9 +38,9 @@ func Dbghost_list(c *gin.Context) {
 			logger.Error("Query debug host list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dbghostlist_Response
-			err = rows.Scan(&tmp.Ip)
-			Dbghost_list = append(Dbghost_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dbghost_list.Ip = append(Dbghost_list.Ip,tmp)
 		}
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbghost_list)
