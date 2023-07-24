@@ -20,7 +20,7 @@ type ApiResponse struct {
 }
 
 type Kvmlist_Response struct {
-	Hostname []string `json:"hostname"`
+	Hostname []string `json:"hostnames"`
 }
 
 type Kvm struct {
