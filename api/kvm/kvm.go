@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"recorder/pkg/apiservice"
+	apiservice "recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb/method"
 )
@@ -34,13 +34,6 @@ type Kvm struct {
 	Stream_status     string `json:"stream_status"`
 	Stream_interface  string `json:"stream_interface"`
 	Start_record_time string `json:"start_record_time"`
-}
-
-type Debug_unit struct {
-	Hostname     string `json:"kvm_hostname"`
-	Ip           string `json:"dbghost_ip"`
-	Machine_name string `json:"dut_machine"`
-	Project      string `json:"project"`
 }
 
 func Kvm_list(c *gin.Context) {
@@ -83,20 +76,11 @@ func Kvm_info(c *gin.Context) {
 
 func Kvm_search(c *gin.Context) {
 	hostname := c.Query("hostname")
-	target := c.Query("target")
-	var res string
-	if target == "dut" {
-		row := method.QueryRow("select machine_name from debug_unit where hostname=?", hostname)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
-	} else if target == "dbghost" {
-		row := method.QueryRow("select ip from debug_unit where hostname=?", hostname)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
+	var res apiservice.Debug_unit
+	row := method.QueryRow("select hostname, ip, machine_name, project from debug_unit where hostname=?", hostname)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name, &res.Project)
+	if err != nil {
+		logger.Error("Search kvm mapping error" + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
@@ -104,7 +88,7 @@ func Kvm_search(c *gin.Context) {
 func Kvm_mapping(c *gin.Context) {
 	// var Kvm_mapping_list	[]Debug_unit
 	body, err := ioutil.ReadAll(c.Request.Body)
-	var Req Debug_unit
+	var Req apiservice.Debug_unit
 	_ = json.Unmarshal(body, &Req)
 	uuid := uuid.New().String()
 	row := method.QueryRow("SELECT count(*) FROM debug_unit where hostname=?", Req.Hostname)

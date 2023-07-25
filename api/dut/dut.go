@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"recorder/pkg/mariadb/method"
 	"recorder/pkg/logger"
-	"recorder/pkg/apiservice"
+	apiservice "recorder/pkg/apiservice"
 
 )
 
@@ -63,20 +63,11 @@ func Dut_info(c *gin.Context) {
 
 func Dut_search(c *gin.Context) {
 	machine_name := c.Query("machine")
-	target := c.Query("target")
-	var res string
-	if target == "kvm" {
-		row := method.QueryRow("select hostname from debug_unit where machine_name=?", machine_name)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
-	}else if target == "dbghost" {
-		row := method.QueryRow("select ip from debug_unit where machine_name=?", machine_name)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
+	var res apiservice.Debug_unit
+	row := method.QueryRow("select hostname, ip, machine_name, project from debug_unit where machine_name=?", machine_name)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name, &res.Project)
+	if err != nil {
+		logger.Error("Search dut mapping error" + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
