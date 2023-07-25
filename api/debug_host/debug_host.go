@@ -10,7 +10,7 @@ import (
 )
 
 type Dbghostlist_Response struct {
-	Ip			[]string	`json:"ip"`
+	Ip			[]string	`json:"ips"`
 }
 
 type Dbg_host struct{
@@ -47,22 +47,16 @@ func Dbghost_list(c *gin.Context) {
 }
 
 func Dbghost_info(c *gin.Context) {
-	var Dbg_host_list []Dbg_host
-	rows, err := method.Query("SELECT * from debug_host")
+	ip := c.Query("ip")
+	rows := method.QueryRow("SELECT * FROM debug_host WHERE ip=?", ip)
+	var tmp Dbg_host
+	err := rows.Scan(&tmp.Ip, &tmp.Hostname, &tmp.Owner)
 	if err != nil {
-		logger.Error("Query debug host list error: " + err.Error())
-	}
-	for rows.Next() {
-		var tmp Dbg_host
-		err = rows.Scan(&tmp.Ip, &tmp.Hostname, &tmp.Owner)
-		if err != nil {
-			logger.Error("Query debug host list error: " + err.Error())
-		}
-		Dbg_host_list = append(Dbg_host_list,tmp)
+		logger.Error("Search debug host info error: " + err.Error())
 	}
 	// response := ApiResponse{"200", Kvm_list}
 	// c.JSON(http.StatusOK, response)
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbg_host_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
 func Dbghost_search(c *gin.Context) {

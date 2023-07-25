@@ -10,7 +10,7 @@ import (
 )
 
 type Dutlist_Response struct {
-	Machine_name		[]string	`json:"machine"`
+	Machine_name		[]string	`json:"machines"`
 }
 
 type Dut struct{
@@ -51,19 +51,14 @@ func Dut_list(c *gin.Context) {
 }
 
 func Dut_info(c *gin.Context) {
-	var Dut_list []Dut
-	rows, err := method.Query("SELECT * from machine")
+	machine := c.Query("machine")
+	rows := method.QueryRow("SELECT * FROM machine WHERE machine_name=?",machine)
+	var tmp Dut
+	err := rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path)
 	if err != nil {
-		logger.Error("Query dut list error: " + err.Error())
+		logger.Error("Search dut information error: " + err.Error())
 	}
-	for rows.Next() {
-		var tmp Dut
-		err = rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path)
-		Dut_list = append(Dut_list,tmp)
-	}
-	// response := ApiResponse{"200", Kvm_list}
-	// c.JSON(http.StatusOK, response)
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
 func Dut_search(c *gin.Context) {
