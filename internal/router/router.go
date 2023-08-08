@@ -47,6 +47,7 @@ func Start_backend() {
 
 	//debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
+	router.GET("/api/dbgunit/project_info", dbgunit_api.Project_info)
 
 	router.Run(":" + Port)
 }
