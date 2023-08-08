@@ -26,7 +26,7 @@ func Dut_list(c *gin.Context) {
 	extra := c.Query("extra")
 	var Dut_list Dutlist_Response
 	if extra == "empty"{
-		rows, err := method.Query("select machine_name from machine where not exists(select 1 from debug_unit where machine.machine_name=debug_unit.machine_name);")
+		rows, err := method.Query("SELECT machine_name FROM machine WHERE NOT EXISTS(SELECT 1 FROM debug_unit WHERE machine.machine_name=debug_unit.machine_name);")
 		if err != nil {
 			logger.Error("Query empty dut list error: " + err.Error())
 		}
@@ -36,7 +36,7 @@ func Dut_list(c *gin.Context) {
 			Dut_list.Machine_name = append(Dut_list.Machine_name,tmp)
 		}
 	}else{
-		rows, err := method.Query("SELECT machine_name from machine")
+		rows, err := method.Query("SELECT machine_name FROM machine")
 		if err != nil {
 			logger.Error("Query dut list error: " + err.Error())
 		}
@@ -48,6 +48,23 @@ func Dut_list(c *gin.Context) {
 	}
 
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+}
+
+func Dut_all_info(c *gin.Context) {
+	var Dut_info_list []Dut
+	rows, err := method.Query("SELECT * FROM machine;")
+	if err != nil {
+		logger.Error("Search all dut info error: " + err.Error())
+	}
+	for rows.Next() {
+		var tmp Dut
+		err = rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path)
+		if err != nil {
+			logger.Error("Search all dut info error: " + err.Error())
+		}
+		Dut_info_list = append(Dut_info_list, tmp)
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_info_list)
 }
 
 func Dut_info(c *gin.Context) {
@@ -64,8 +81,8 @@ func Dut_info(c *gin.Context) {
 func Dut_search(c *gin.Context) {
 	machine_name := c.Query("machine")
 	var res apiservice.Debug_unit
-	row := method.QueryRow("select hostname, ip, machine_name, project from debug_unit where machine_name=?", machine_name)
-	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name, &res.Project)
+	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE machine_name=?", machine_name)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name)
 	if err != nil {
 		logger.Error("Search dut mapping error" + err.Error())
 	}
