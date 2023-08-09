@@ -1,7 +1,7 @@
 package kvm_api
 
 import (
-	// "fmt"
+	"fmt"
 	"os"
 	"encoding/json"
 	"encoding/csv"
@@ -182,7 +182,7 @@ func Kvm_delete(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func checkMappingFile(data [][]string) bool {
+func checkMappingFile(data [][]string) (bool, string) {
 	var check_hostname 	[]string
 	var check_ip		[]string
 	var check_machine 	[]string
@@ -202,7 +202,8 @@ func checkMappingFile(data [][]string) bool {
     allKeys := make(map[string]bool)
     for _, item := range check_hostname {
 		if allKeys[item] == true{
-			return false
+			var resp string="Duplicate kvm mapping: " + item
+			return false, resp
 		}
         if _, value := allKeys[item]; !value {
 			allKeys[item] = true
@@ -211,7 +212,8 @@ func checkMappingFile(data [][]string) bool {
 	allKeys = make(map[string]bool)
 	for _, item := range check_ip {
 		if allKeys[item] == true{
-			return false
+			var resp string="Duplicate dbghost mapping" + item
+			return false, resp
 		}
         if _, value := allKeys[item]; !value {
 			allKeys[item] = true
@@ -220,7 +222,8 @@ func checkMappingFile(data [][]string) bool {
 	allKeys = make(map[string]bool)
 	for _, item := range check_machine {
 		if allKeys[item] == true{
-			return false
+			var resp string="Duplicate dut mapping" + item
+			return false, resp
 		}
         if _, value := allKeys[item]; !value {
 			allKeys[item] = true
@@ -292,17 +295,20 @@ func checkMappingFile(data [][]string) bool {
 	for i, line := range data {
 		if i > 0{
 			if contains := slices.Contains(hostnames, line[0]); !contains{
-				return false
+				var resp string=line[0] + " not found in kvm csv"
+				return false, resp
 			}
 			if contains := slices.Contains(ips, line[1]); !contains{
-				return false
+				var resp string=line[1] + " not found in dbg csv"
+				return false, resp
 			}
 			if contains := slices.Contains(machines, line[2]); !contains{
-				return false
+				var resp string=line[2] + " not found in dut csv"
+				return false, resp
 			}
 		}
 	}
-    return true
+    return true,""
 }
 
 func Kvm_csv2db(){
@@ -462,9 +468,10 @@ func Kvm_csv_mapping(c *gin.Context) {
         logger.Error(err.Error())
     }
 
-	result := checkMappingFile(data)
+	result, result_mesg := checkMappingFile(data)
+	fmt.Printf(result_mesg)
 	if !result{
-		apiservice.ResponseWithJson(c.Writer, http.StatusBadRequest, "")
+		apiservice.ResponseWithJson(c.Writer, http.StatusBadRequest, result_mesg)
 		return
 	}
 	_, err = method.Exec("DELETE FROM debug_unit")
@@ -474,7 +481,7 @@ func Kvm_csv_mapping(c *gin.Context) {
 	Dbghost_csv2db()
 	Dut_csv2db()
 	Dbgunit_csv2db()
-	
+
     // mappingList := createMappingList(data)
 
 	defer f.Close()
