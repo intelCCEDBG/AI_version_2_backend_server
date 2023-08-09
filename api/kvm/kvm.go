@@ -2,10 +2,13 @@ package kvm_api
 
 import (
 	// "fmt"
+	"os"
 	"encoding/json"
-	// "encoding/csv"
+	"encoding/csv"
 	"io/ioutil"
+	"io"
 	"net/http"
+	"golang.org/x/exp/slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -39,6 +42,13 @@ type Kvm struct {
 	Stream_status     string `json:"stream_status"`
 	Stream_interface  string `json:"stream_interface"`
 	Start_record_time string `json:"start_record_time"`
+}
+
+type Mapping_file struct {
+    Hostname 		string
+    Ip     			string
+	Machine_name	string
+	Project			string
 }
 
 func Kvm_list(c *gin.Context) {
@@ -172,79 +182,302 @@ func Kvm_delete(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-// func Kvm_csv_mapping(c *gin.Context) {
-// 	csvFile, err := os.Open(*path)
+func checkMappingFile(data [][]string) bool {
+	var check_hostname 	[]string
+	var check_ip		[]string
+	var check_machine 	[]string
+    for i, line := range data {
+        if i > 0 { // omit header line
+            for j, field := range line {
+                if j == 0 {
+                    check_hostname = append(check_hostname, field)
+                } else if j == 1 {
+                    check_ip = append(check_ip, field)
+                } else if j == 2 {
+                    check_machine = append(check_machine, field)
+                }
+            }
+        }
+    }
+    allKeys := make(map[string]bool)
+    for _, item := range check_hostname {
+		if allKeys[item] == true{
+			return false
+		}
+        if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+        }
+    }
+	allKeys = make(map[string]bool)
+	for _, item := range check_ip {
+		if allKeys[item] == true{
+			return false
+		}
+        if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+        }
+    }
+	allKeys = make(map[string]bool)
+	for _, item := range check_machine {
+		if allKeys[item] == true{
+			return false
+		}
+        if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+        }
+    }
 
-// 	if err != nil {
-// 	   log.Fatal("The file is not found || wrong root")
-// 	}
-// 	defer csvFile.Close()
- 
-// 	reader := csv.NewReader(csvFile)
-// 	content, _ := reader.ReadAll()
- 
-// 	if len(content) < 1 {
-// 	   log.Fatal("Something wrong, the file maybe empty or length of the lines are not the same")
-// 	}
- 
-// 	headersArr := make([]string, 0)
-// 	for _, headE := range content[0] {
-// 	   headersArr = append(headersArr, headE)
-// 	}
-// 	fmt.Println(headersArr)
-// }
-// c.Request.ParseMultipartForm(10 << 20)
-// 	file, handler, err := c.Request.FormFile("file")
-// 	if err != nil{
-// 		logger.Error("Error Data retrieving " + err.Error())
-// 	}
-// 	fileName  := handler.Filename
-// 	logger.Info("Uploaded File : %+v\n", fileName)
-// 	tempFile , err := ioutil.TempFile("csv/temp-pdfs", "upload.csv")
-// 	if err != nil{
-// 		logger.Error(err.Error())
-// 	}
-// 	defer tempFile.Close()
-// 	logger.Info("File name %s\n", tempFile.Name())
-// 	var Req Debug_unit
-// 	// _ = json.Unmarshal(body, &Req)
-// 	uuid := uuid.New().String()
-// 	row := method.QueryRow("SELECT count(*) FROM debug_unit WHERE hostname=?", Req.Hostname)
-// 	var exist int
-// 	err = row.Scan(&exist)
-// 	if err != nil {
-// 		logger.Error("update kvm mapping error: " + err.Error())
-// 	}
-// 	if exist != 0 {
-// 		_, err := method.Exec("DELETE FROM debug_unit WHERE hostname=?", Req.Hostname)
-// 		if err != nil {
-// 			logger.Error("update kvm mapping error: " + err.Error())
-// 		}
-// 	}
-// 	row = method.QueryRow("SELECT count(*) FROM debug_unit WHERE ip=?", Req.Ip)
-// 	var exist2 int
-// 	err = row.Scan(&exist2)
-// 	if err != nil {
-// 		logger.Error("update kvm mapping error: " + err.Error())
-// 	}
-// 	if exist2 != 0 {
-// 		_, err := method.Exec("DELETE FROM debug_unit WHERE ip=?", Req.Ip)
-// 		if err != nil {
-// 			logger.Error("update kvm mapping error: " + err.Error())
-// 		}
-// 	}
-// 	row = method.QueryRow("SELECT count(*) FROM debug_unit WHERE machine_name=?", Req.Machine_name)
-// 	var exist3 int
-// 	err = row.Scan(&exist3)
-// 	if err != nil {
-// 		logger.Error("update kvm mapping error: " + err.Error())
-// 	}
-// 	if exist3 != 0 {
-// 		_, err := method.Exec("DELETE FROM debug_unit WHERE machine_name=?", Req.Machine_name)
-// 		if err != nil {
-// 			logger.Error("update kvm mapping error: " + err.Error())
-// 		}
-// 	}
-// 	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name, project) VALUES (?, ?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.Machine_name, Req.Project)
-// 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
-// }
+	f, err := os.Open("./upload/kvm.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+
+    csvReader := csv.NewReader(f)
+    kvm_data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	var hostnames []string
+    for i, line := range kvm_data {
+        if i > 0 { // omit header line
+			var tmp0 string = line[0]
+			hostnames = append(hostnames, tmp0)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+        }
+    }
+
+	f, err = os.Open("./upload/dbg.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+
+    csvReader = csv.NewReader(f)
+    dbg_data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	var ips []string
+    for i, line := range dbg_data {
+        if i > 0 { // omit header line
+			var tmp0 string = line[1]
+			ips = append(ips, tmp0)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+        }
+    }
+
+	f, err = os.Open("./upload/dut.csv")
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	csvReader = csv.NewReader(f)
+	dut_data, err := csvReader.ReadAll()
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	var machines []string
+	for i, line := range dut_data {
+		if i > 0 { // omit header line
+			var tmp0 string = line[0]
+			machines = append(machines, tmp0)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+		}
+	}
+
+	for i, line := range data {
+		if i > 0{
+			if contains := slices.Contains(hostnames, line[0]); !contains{
+				return false
+			}
+			if contains := slices.Contains(ips, line[1]); !contains{
+				return false
+			}
+			if contains := slices.Contains(machines, line[2]); !contains{
+				return false
+			}
+		}
+	}
+    return true
+}
+
+func Kvm_csv2db(){
+	f, err := os.Open("./upload/kvm.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+    csvReader := csv.NewReader(f)
+    data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	_, err = method.Exec("DELETE FROM kvm")
+	if err != nil{
+		logger.Error(err.Error())
+	}
+    for i, line := range data {
+        if i > 0 { // omit header line
+			var tmp0 string = line[0]
+			var tmp1 string = line[1]
+			var tmp2 string = line[2]
+			var tmp3 string = line[3]
+			var tmp4 string = line[4]
+			_, err = method.Exec("INSERT INTO kvm ( hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, tmp2, "null", tmp3, tmp4, "http://"+tmp1+":8081", "recording", "null", 0)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+        }
+    }
+}
+
+func Dbghost_csv2db(){
+	f, err := os.Open("./upload/dbg.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+    csvReader := csv.NewReader(f)
+    data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	_, err = method.Exec("DELETE FROM debug_host")
+	if err != nil{
+		logger.Error(err.Error())
+	}
+    for i, line := range data {
+        if i > 0 { // omit header line
+			var tmp0 string = line[0]
+			var tmp1 string = line[1]
+			var tmp2 string = line[2]
+			_, err = method.Exec("INSERT INTO debug_host ( ip, hostname, owner) VALUES (?, ?, ?);", tmp1, tmp0, tmp2)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+        }
+    }
+}
+
+func Dut_csv2db(){
+	f, err := os.Open("./upload/dut.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+    csvReader := csv.NewReader(f)
+    data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	_, err = method.Exec("DELETE FROM machine")
+	if err != nil{
+		logger.Error(err.Error())
+	}
+    for i, line := range data {
+        if i > 0 { // omit header line
+			var tmp0 string = line[0]
+			var tmp1 string = line[1]
+			var tmp2 string = line[2]
+			_, err = method.Exec("INSERT INTO machine ( machine_name, ssim, status, cycle_cnt, error_timestamp, path, threshold) VALUES (?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, 1, 0, 0, "null", tmp2)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+			
+        }
+    }
+}
+
+func Dbgunit_csv2db(){
+	f, err := os.Open("./upload/map.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+    csvReader := csv.NewReader(f)
+    data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+    for i, line := range data {
+        if i > 0 { // omit header line
+			uuid := uuid.New().String()
+			var tmp0 string = line[0]
+			var tmp1 string = line[1]
+			var tmp2 string = line[2]
+			var tmp3 string = line[3]
+			_, err = method.Exec("INSERT INTO debug_unit (uuid, hostname, ip,  machine_name, project) VALUES (?, ?, ?, ?, ?);",uuid, tmp0, tmp1, tmp2, tmp3)
+			if err!=nil{
+				logger.Error(err.Error())
+			}
+			
+        }
+    }
+}
+func createMappingList(data [][]string) []Mapping_file {
+    var mappingList []Mapping_file
+    for i, line := range data {
+        if i > 0 { // omit header line
+            var rec Mapping_file
+            for j, field := range line {
+                if j == 0 {
+                    rec.Hostname = field
+                } else if j == 1 {
+                    rec.Ip = field
+                } else if j == 2 {
+                    rec.Machine_name = field
+                } else if j == 3 {
+                    rec.Project = field
+                }
+            }
+            mappingList = append(mappingList, rec)
+        }
+    }
+    return mappingList
+}
+
+func Kvm_csv_mapping(c *gin.Context) {
+	file_list := [4]string{"dutfile", "kvmfile", "dbgfile", "mapfile"}
+	for _, fileName := range file_list {
+		file, header , err := c.Request.FormFile(fileName)
+		filename := header.Filename
+		out, err := os.Create("./upload/"+filename)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+		defer out.Close()
+		_, err = io.Copy(out, file)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}   
+	f, err := os.Open("./upload/map.csv")
+	if err != nil {
+        logger.Error(err.Error())
+    }
+	// read csv values using csv.Reader
+    csvReader := csv.NewReader(f)
+    data, err := csvReader.ReadAll()
+	if err != nil {
+        logger.Error(err.Error())
+    }
+
+	result := checkMappingFile(data)
+	if !result{
+		apiservice.ResponseWithJson(c.Writer, http.StatusBadRequest, "")
+		return
+	}
+	_, err = method.Exec("DELETE FROM debug_unit")
+
+	//import csv file to db
+	Kvm_csv2db()
+	Dbghost_csv2db()
+	Dut_csv2db()
+	Dbgunit_csv2db()
+	
+    // mappingList := createMappingList(data)
+
+	defer f.Close()
+
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
