@@ -6,6 +6,7 @@ import (
 	"recorder/pkg/mariadb/method"
 	"recorder/pkg/logger"
 	"recorder/pkg/apiservice"
+	// "fmt"
 
 )
 
@@ -16,13 +17,14 @@ type Project_list_response struct {
 type Debug_unit_info struct{
 	Hostname		string	`json:"hostname"`
 	Machine_name	string	`json:"machine_name"`
-	Ip				string 	`json:"ip"`
+	KVM_link		string 	`json:"stream_url"`
+	Status			string 	`json:"status"`
 }
 
 type Project_info_response struct{
-	Project		string				`json:"project"`
-	Info		[]Debug_unit_info	`json:"info"`
+	Duts		[]Debug_unit_info	`json:"duts"`
 }
+
 // {
 // 	[{"project":"ODINW", "info":[{"hstname":"10.x.x.","machine_name":"ODINWXXX"},{"10.x.y", "ODINWXXY"}]}]
 // }
@@ -45,7 +47,7 @@ func Project_info(c *gin.Context) {
 	var Resp Project_info_response
 	project_name := c.Query("project")
 	if project_name == "ALL" {
-		var Resp2 []Project_info_response
+		var Resp2 Project_info_response
 		var Project_list []string
 		rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
 		if err != nil {
@@ -57,41 +59,57 @@ func Project_info(c *gin.Context) {
 			Project_list = append(Project_list,tmp)
 		}
 		for _, pj := range Project_list {
-			rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;",pj)
+			rows, err := method.Query("SELECT hostname, machine_name FROM debug_unit WHERE project=?;",pj)
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}
-			var tmp2 []Debug_unit_info
 			for rows.Next() {
 				var tmp Debug_unit_info
-				err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Ip)
+				err = rows.Scan(&tmp.Hostname, &tmp.Machine_name)
 				if err != nil {
 					logger.Error("Search project info error: " + err.Error())
 				}
-				tmp2 = append(tmp2, tmp)
+				row := method.QueryRow("SELECT status FROM machine WHERE machine_name=?;",&tmp.Machine_name)
+				err = row.Scan(&tmp.Status)
+				if err != nil {
+					logger.Error("Search project info error: " + err.Error())
+				}
+				row = method.QueryRow("SELECT stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
+				err = row.Scan(&tmp.KVM_link)
+				if err != nil {
+					logger.Error("Search project info error: " + err.Error())
+				}
+				Resp2.Duts = append(Resp2.Duts,tmp)
 			}
-			Resp.Project = pj
-			Resp.Info = tmp2
-			Resp2 = append(Resp2,Resp)
+			// Resp.Duts = append(Resp.Duts, tmp2)
 		}	
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp2)
 		return
 	}else{
-		rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;",project_name)
+		rows, err := method.Query("SELECT hostname, machine_name FROM debug_unit WHERE project=?;",project_name)
 		if err != nil {
 			logger.Error("Search project info error: " + err.Error())
 		}
 		var tmp2 []Debug_unit_info
 		for rows.Next() {
 			var tmp Debug_unit_info
-			err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Ip)
+			err = rows.Scan(&tmp.Hostname, &tmp.Machine_name)
+			if err != nil {
+				logger.Error("Search project info error: " + err.Error())
+			}
+			row := method.QueryRow("SELECT status FROM machine WHERE machine_name=?;",&tmp.Machine_name)
+			err = row.Scan(&tmp.Status)
+			if err != nil {
+				logger.Error("Search project info error: " + err.Error())
+			}
+			row = method.QueryRow("SELECT stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
+			err = row.Scan(&tmp.KVM_link)
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}
 			tmp2 = append(tmp2, tmp)
 		}
-		Resp.Project = project_name
-		Resp.Info = tmp2
+		Resp.Duts = tmp2
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
