@@ -24,7 +24,8 @@ func Start_backend() {
 
 	Port := config.Viper.GetString("SERVER_PORT")
 
-	// GET request
+	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
+	
 	//kvm
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
@@ -32,7 +33,6 @@ func Start_backend() {
 	router.GET("/api/kvm/search", kvm_api.Kvm_search)
 	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
 	router.POST("/api/kvm/delete_mapping", kvm_api.Kvm_delete)
-	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
 
 	//debug_host
 	router.GET("/api/dbg/list", dbghost_api.Dbghost_list)
