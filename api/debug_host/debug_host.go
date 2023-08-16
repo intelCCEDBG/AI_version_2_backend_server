@@ -10,7 +10,7 @@ import (
 )
 
 type Dbghostlist_Response struct {
-	Ip			string	`json:"ip"`
+	Ip			[]string	`json:"ips"`
 }
 
 type Dbg_host struct{
@@ -21,66 +21,68 @@ type Dbg_host struct{
 
 func Dbghost_list(c *gin.Context) {
 	extra := c.Query("extra")
-	var Dbghost_list []Dbghostlist_Response
+	var Dbghost_list Dbghostlist_Response
 	if extra == "empty"{
-		rows, err := method.Query("select ip from debug_host where not exists(select 1 from debug_unit where debug_host.ip=debug_unit.ip);")
+		rows, err := method.Query("SELECT ip FROM debug_host WHERE NOT EXISTS(SELECT 1 FROM debug_unit WHERE debug_host.ip=debug_unit.ip);")
 		if err != nil {
 			logger.Error("Query empty debug host list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dbghostlist_Response
-			err = rows.Scan(&tmp.Ip)
-			Dbghost_list = append(Dbghost_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dbghost_list.Ip = append(Dbghost_list.Ip,tmp)
 		}
 	}else{
-		rows, err := method.Query("SELECT ip from debug_host")
+		rows, err := method.Query("SELECT ip FROM debug_host")
 		if err != nil {
 			logger.Error("Query debug host list error: " + err.Error())
 		}
 		for rows.Next() {
-			var tmp Dbghostlist_Response
-			err = rows.Scan(&tmp.Ip)
-			Dbghost_list = append(Dbghost_list,tmp)
+			var tmp string
+			err = rows.Scan(&tmp)
+			Dbghost_list.Ip = append(Dbghost_list.Ip,tmp)
 		}
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbghost_list)
 }
 
-func Dbghost_info(c *gin.Context) {
-	var Dbg_host_list []Dbg_host
-	rows, err := method.Query("SELECT * from debug_host")
+func Dbghost_all_info(c *gin.Context) {
+	var Dbg_info_list []Dbg_host
+	rows, err := method.Query("SELECT * FROM debug_host;")
 	if err != nil {
-		logger.Error("Query debug host list error: " + err.Error())
+		logger.Error("Search all debug host info error: " + err.Error())
 	}
 	for rows.Next() {
 		var tmp Dbg_host
 		err = rows.Scan(&tmp.Ip, &tmp.Hostname, &tmp.Owner)
 		if err != nil {
-			logger.Error("Query debug host list error: " + err.Error())
+			logger.Error("Search all debug host info error: " + err.Error())
 		}
-		Dbg_host_list = append(Dbg_host_list,tmp)
+		Dbg_info_list = append(Dbg_info_list, tmp)
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbg_info_list)
+}
+
+func Dbghost_info(c *gin.Context) {
+	ip := c.Query("ip")
+	rows := method.QueryRow("SELECT * FROM debug_host WHERE ip=?", ip)
+	var tmp Dbg_host
+	err := rows.Scan(&tmp.Ip, &tmp.Hostname, &tmp.Owner)
+	if err != nil {
+		logger.Error("Search debug host info error: " + err.Error())
 	}
 	// response := ApiResponse{"200", Kvm_list}
 	// c.JSON(http.StatusOK, response)
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbg_host_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
 func Dbghost_search(c *gin.Context) {
 	ip := c.Query("ip")
-	target := c.Query("target")
-	var res string
-	if target == "kvm" {
-		row := method.QueryRow("select hostname from debug_unit where ip=?", ip)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
-	}else if target == "dut" {
-		row := method.QueryRow("select machine_name from debug_unit where ip=?", ip)
-		err := row.Scan(&res)
-		if err != nil {
-			res = "null"
-		}
+	var res apiservice.Debug_unit
+	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE ip=?", ip)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name)
+	if err != nil {
+		logger.Error("Search dut mapping error" + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
