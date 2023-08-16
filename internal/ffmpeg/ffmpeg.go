@@ -23,12 +23,20 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 	url := mh.Stream_url
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
 	image_path := config.Viper.GetString("IMAGE_PATH") + hostname + "/"
+	err := os.RemoveAll(video_path)
+	if err != nil {
+		logger.Error(err.Error())
+	}
 	if _, err := os.Stat(video_path); os.IsNotExist(err) {
 		err := os.Mkdir(video_path, 0777)
 		if err != nil {
 			logger.Error(err.Error())
 		}
 		// TODO: handle error
+	}
+	err = os.RemoveAll(image_path)
+	if err != nil {
+		logger.Error(err.Error())
 	}
 	if _, err := os.Stat(image_path); os.IsNotExist(err) {
 		err := os.Mkdir(image_path, 0777)
@@ -37,9 +45,9 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 		}
 		// TODO: handle error
 	}
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-i", url,
-		"-codec", "libx264", "-preset", "ultrafast", "-qp", "0", "-f", "segment", "-segment_time", "10", "-segment_list", video_path+"all.m3u8", "-strftime", "1", video_path+"%Y-%m-%d_%H-%M-%S.ts",
-		"-vf", "fps=0.2", "-update", image_path+hostname+".png")
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet","-y", "-i", url,
+		"-codec", "libx264", "-preset", "ultrafast", "-f", "hls", "-strftime", "1" ,"-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
+		"-r", "0.2", "-update", "1", image_path+hostname+".png")
 	logger.Info(cmd.String())
 	in, err := cmd.StdinPipe()
 	if err != nil {
