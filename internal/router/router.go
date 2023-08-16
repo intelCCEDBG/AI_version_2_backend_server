@@ -37,6 +37,7 @@ func Start_backend() {
 	router.GET("/api/dut/search", dut_api.Dut_search)
 
 	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
+	router.POST("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 
 	router.Run(":" + Port)
 }

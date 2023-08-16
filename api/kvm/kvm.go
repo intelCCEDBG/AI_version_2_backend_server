@@ -1,10 +1,14 @@
 package kvm_api
 
 import (
-	// "fmt"
+	"fmt"
+	"sort"
+	"os"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -42,7 +46,12 @@ type Debug_unit struct {
 	Machine_name string `json:"dut_machine"`
 	Project      string `json:"project"`
 }
-
+type Video_info struct {
+	Hostname     string `json:"kvm_hostname"`
+	Hour     int `json:"hour"`
+	Minute           int `json:"minute"`
+	Duration int `json:"duration"`
+}
 func Kvm_list(c *gin.Context) {
 	extra := c.Query("extra")
 	var Kvm_list []Kvmlist_Response
@@ -152,29 +161,53 @@ func Kvm_mapping(c *gin.Context) {
 		}
 	}
 	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name, project) VALUES (?, ?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.Machine_name, Req.Project)
-	// action := c.DefaultQuery("action", "Search")
-	// var action
-	// if action == "Search"{
-	// 	rows, err := method.Query("SELECT hostname, ip, machine_name, project FROM debug_unit")
-	// 	if err != nil {
-	// 		logger.Error("Query kvm mapping error: " + err.Error())
-	// 	}
-	// 	for rows.Next() {
-	// 		var tmp Debug_unit
-	// 		err = rows.Scan(&tmp.Hostname, &tmp.Ip, &tmp.Machine_name, &tmp.Project)
-	// 		Kvm_mapping_list = append(Kvm_mapping_list,tmp)
-	// 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Kvm_mapping_list)
-	// 		return
-	// }
-	// } else if action == "Update"{
-	// 	// var u uuid.NullUUID
-	// 	var exist int
-	// 	row := method.Query("SELECT count(*) FROM debug_unit")
-	// 	if err := row.Scan(&exist); err != nil {
 
-	// 	}
-	// 	response := ApiResponse{"500", "Mapping error"}
-	// 	c.JSON(http.StatusInternalServerError, response)
-	// }
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func Kvm_genvideo(c *gin.Context){
+	body, _ := ioutil.ReadAll(c.Request.Body)
+	var Req Video_info
+	_ = json.Unmarshal(body, &Req)
+	fmt.Println(Req.Duration)
+	files, err := ioutil.ReadDir("/home/media/video/"+Req.Hostname+"/")
+    if err != nil {
+        logger.Error("List video dir fail: " + err.Error())
+    }
+	
+	var filenames []string
+	for _, file := range files {
+		filenames = append(filenames,file.Name())
+    }
+	sort.Strings(filenames)
+	f, err := os.OpenFile("/home/media/video/"+Req.Hostname+"/self-define.m3u8",os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 644)
+	if err != nil {
+        logger.Error("open video file fail: " + err.Error())
+		return
+    }
+	defer f.Close()
+	f.WriteString("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ALLOW-CACHE:YES\n#EXT-X-TARGETDURATION:10\n")
+	var h,m string
+	if (Req.Hour<10){
+		h = strconv.Itoa(Req.Hour)
+		h = "0"+h
+	}else{
+		h = strconv.Itoa(Req.Hour)
+	}
+	if (Req.Minute<10){
+		m = strconv.Itoa(Req.Minute)
+		m = "0"+m
+	}else{
+		m = strconv.Itoa(Req.Minute)
+	}
+	for ii, filename := range filenames {
+		if (strings.Contains(filename,"2023-08-15_"+h+"-"+m)){
+			for i:=0; i<Req.Duration/10;i++{
+				f.WriteString("#EXTINF:10.000000,\n")
+				f.WriteString(filenames[ii+i]+"\n")
+			}
+			break
+		}
+    }
+	f.WriteString("#EXT-X-ENDLIST")
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
