@@ -46,7 +46,6 @@ func Start_backend() {
 	router.GET("/api/dut/all_info", dut_api.Dut_all_info)
 	router.GET("/api/dut/search", dut_api.Dut_search)
 
-	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
 	router.POST("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	//debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
