@@ -13,8 +13,8 @@ import (
 )
 
 var Stop_channel map[string]context.CancelFunc
-var Stop_signal_out_channel chan kvm.Kvm
-var Start_signal_out_channel chan kvm.Kvm
+var Stop_signal_out_channel chan string
+var Start_signal_out_channel chan string
 
 func init() {
 	Stop_channel = make(map[string]context.CancelFunc)
@@ -24,6 +24,7 @@ func Start_service() {
 	Connection_close := make(chan int, 1)
 	get_recording_kvm_back()
 	go monitor_stop_signal()
+	go monitor_start_signal()
 	Quit := make(chan os.Signal, 1)
 	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
 	<-Quit
@@ -51,7 +52,8 @@ func monitor_start_signal() {
 		logger.Info(hostname + " start recording")
 		ctx, cancel := context.WithCancel(context.Background())
 		Stop_channel[hostname] = cancel
-		go ffmpeg.Record(Stop_signal_out_channel, element, ctx)
+		Kvm := kvm.Get(hostname)
+		go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
 		kvm.IdletoRecord(hostname)
 	}
 }

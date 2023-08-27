@@ -19,5 +19,6 @@ func Start_server() {
 		return
 	}
 	loadstatus.Loadstatus()
+	go loadstatus.Sync_with_mariadb()
 	service.Start_service()
 }
