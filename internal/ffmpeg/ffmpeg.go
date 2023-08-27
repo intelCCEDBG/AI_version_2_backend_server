@@ -10,6 +10,7 @@ import (
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
 	"time"
+	"syscall"
 )
 
 func init() {
@@ -28,6 +29,7 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 		logger.Error(err.Error())
 	}
 	if _, err := os.Stat(video_path); os.IsNotExist(err) {
+		syscall.Umask(0)
 		err := os.Mkdir(video_path, 0777)
 		if err != nil {
 			logger.Error(err.Error())
@@ -39,15 +41,17 @@ func Record(ch chan<- string, mh *kvm.Kvm, ctx context.Context) {
 		logger.Error(err.Error())
 	}
 	if _, err := os.Stat(image_path); os.IsNotExist(err) {
+		syscall.Umask(0)
 		err := os.Mkdir(image_path, 0777)
 		if err != nil {
 			logger.Error(err.Error())
 		}
 		// TODO: handle error
 	}
+	reso := "scale=320:180"
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet","-y", "-i", url,
 		"-codec", "libx264", "-preset", "ultrafast", "-f", "hls", "-strftime", "1" ,"-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
-		"-r", "0.2", "-update", "1", image_path+hostname+".png")
+		"-r", "0.2", "-update", "1", image_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
 	logger.Info(cmd.String())
 	in, err := cmd.StdinPipe()
 	if err != nil {
