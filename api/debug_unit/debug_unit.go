@@ -25,9 +25,6 @@ type Project_info_response struct{
 	Duts		[]Debug_unit_info	`json:"duts"`
 }
 
-// {
-// 	[{"project":"ODINW", "info":[{"hstname":"10.x.x.","machine_name":"ODINWXXX"},{"10.x.y", "ODINWXXY"}]}]
-// }
 func Project_list(c *gin.Context) {
 	var Project_list Project_list_response
 	rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
