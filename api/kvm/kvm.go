@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"os"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/csv"
 	"io/ioutil"
@@ -56,12 +57,19 @@ type Mapping_file struct {
 	Machine_name	string
 	Project			string
 }
+
 type Video_info struct {
 	Hostname     string `json:"kvm_hostname"`
 	Hour     int `json:"hour"`
 	Minute           int `json:"minute"`
 	Duration int `json:"duration"`
 }
+
+type Kvm_state struct {
+	Hostname     	string `json:"kvm_hostname"`
+	Stream_status	string `json:"stream_status`
+} 
+
 func Kvm_list(c *gin.Context) {
 	extra := c.Query("extra")
 	var Kvm_list Kvmlist_Response
@@ -501,7 +509,56 @@ func Kvm_csv_mapping(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
+func Kvm_status(c *gin.Context){
+	action := c.Query("action")
+	var Resp Kvm_state
+	var Req  Kvm_state
+	body, _ := ioutil.ReadAll(c.Request.Body)
+	_ = json.Unmarshal(body, &Req)
+	if action == "search"{
+		Resp.Hostname = Req.Hostname
+		row := method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
+		err := row.Scan(&Resp.Stream_status)
+		if err != nil{
+			logger.Error("search kvm status error" + err.Error())	
+		}
+		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+		return
+	}else if action == "update"{
+		_, err := method.Exec("UPDATE kvm SET stream_status=? WHERE hostname=?",Req.Stream_status, Req.Hostname)
+		if err != nil{
+			logger.Error("update kvm status error" + err.Error())	
+		}
+		var ip string
+		row := method.QueryRow("SELECT ip FROM kvm WHERE hostname=?", Req.Hostname)
+		err = row.Scan(&ip)
+		if err != nil{
+			logger.Error(err.Error())	
+		}
+		if Req.Stream_status == "recording"{
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			_, err := client.Get("https://"+ip+":8443/api/switch_mode?mode=motion")
+			if err != nil{
+				logger.Error("update send switch mode request to kvm error" + err.Error())	
+			}
+		}else if Req.Stream_status == "idle"{
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+			client := &http.Client{Transport: tr}
+			_, err := client.Get("https://"+ip+":8443/api/switch_mode?mode=kvmd")
+			if err != nil{
+				logger.Error("update send switch mode request to kvm error" + err.Error())	
+			}
+		}
 
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "update successfully")
+
+}
 func Kvm_genvideo(c *gin.Context){
 	body, _ := ioutil.ReadAll(c.Request.Body)
 	var Req Video_info
