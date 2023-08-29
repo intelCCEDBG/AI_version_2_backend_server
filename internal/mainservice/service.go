@@ -8,6 +8,7 @@ import (
 	"recorder/internal/ffmpeg"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
+	"recorder/pkg/redis"
 	"syscall"
 	"time"
 )
@@ -25,11 +26,12 @@ func Start_service() {
 	get_recording_kvm_back()
 	go monitor_stop_signal()
 	go monitor_start_signal()
+	go monitor_stop_abnormal_signal()
 	Quit := make(chan os.Signal, 1)
 	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
 	<-Quit
 	fmt.Println("Server is shutting down...")
-	servershutdown()
+	servershutdown(Connection_close)
 	select {
 	case <-Connection_close:
 		logger.Info("Connection closed")
@@ -38,28 +40,42 @@ func Start_service() {
 	}
 	fmt.Println("Server shutdown complete.")
 }
-func monitor_stop_signal() {
+func monitor_stop_abnormal_signal() {
 	for {
 		hostname := <-Stop_signal_out_channel
-		logger.Info(hostname + " stop recording")
-		Stop_channel[hostname]()
+		logger.Info(hostname + " stop abnormal recording")
 		kvm.RecordtoIdle(hostname)
+	}
+}
+func monitor_stop_signal() {
+	for {
+		hostnames := redis.Redis_get_by_pattern("kvm:*:stop")
+		for _, hostname := range hostnames {
+			logger.Info(hostname + " stop recording")
+			Stop_recording(hostname)
+			kvm.RecordtoIdle(hostname)
+			redis.Redis_del("kvm:" + hostname + ":stop")
+		}
 	}
 }
 func monitor_start_signal() {
 	for {
-		hostname := <-Start_signal_out_channel
-		logger.Info(hostname + " start recording")
-		ctx, cancel := context.WithCancel(context.Background())
-		Stop_channel[hostname] = cancel
-		Kvm := kvm.Get(hostname)
-		go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
-		kvm.IdletoRecord(hostname)
+		hostnames := redis.Redis_get_by_pattern("kvm:*:recording")
+		for _, hostname := range hostnames {
+			logger.Info(hostname + " start recording")
+			ctx, cancel := context.WithCancel(context.Background())
+			Stop_channel[hostname] = cancel
+			Kvm := kvm.Get(hostname)
+			go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
+			kvm.IdletoRecord(hostname)
+			redis.Redis_del("kvm:" + hostname + ":recording")
+		}
 	}
 }
-func servershutdown() {
+func servershutdown(Connection_close chan int) {
 	stop_recording_all()
-
+	time.Sleep(1 * time.Second)
+	Connection_close <- 1
 }
 func get_recording_kvm_back() {
 	for _, element := range kvm.Recording_kvm {
@@ -75,6 +91,6 @@ func stop_recording_all() {
 	}
 }
 
-func stop_recording(hostname string) {
+func Stop_recording(hostname string) {
 	Stop_channel[hostname]()
 }

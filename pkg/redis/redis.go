@@ -37,6 +37,15 @@ func Redis_get(key string) string {
 	return val
 }
 
+func Redis_get_by_pattern(pattern string) []string {
+	val, _ := RedisClient.Keys(context.Background(), pattern).Result()
+	return val
+}
+
 func Redis_append(key string, value string) {
 	RedisClient.Append(context.Background(), key, value)
+}
+
+func Redis_del(key string) {
+	RedisClient.Del(context.Background(), key)
 }

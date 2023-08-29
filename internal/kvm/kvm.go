@@ -1,6 +1,9 @@
 package kvm
 
-import "recorder/pkg/redis"
+import (
+	kvm_query "recorder/pkg/mariadb/kvm"
+	"recorder/pkg/redis"
+)
 
 type Kvm struct {
 	Hostname          string
@@ -45,11 +48,13 @@ func Remove(hostname string) {
 func RecordtoIdle(hostname string) {
 	Idle_kvm[hostname] = Recording_kvm[hostname]
 	delete(Recording_kvm, hostname)
+	kvm_query.Update_kvm_status(hostname, "idle")
 }
 
 func IdletoRecord(hostname string) {
 	Recording_kvm[hostname] = Idle_kvm[hostname]
 	delete(Idle_kvm, hostname)
+	kvm_query.Update_kvm_status(hostname, "recording")
 }
 
 func Get(hostname string) Kvm {
