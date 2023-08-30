@@ -49,26 +49,34 @@ func monitor_stop_abnormal_signal() {
 }
 func monitor_stop_signal() {
 	for {
-		hostnames := redis.Redis_get_by_pattern("kvm:*:stop")
-		for _, hostname := range hostnames {
-			logger.Info(hostname + " stop recording")
-			Stop_recording(hostname)
-			kvm.RecordtoIdle(hostname)
-			redis.Redis_del("kvm:" + hostname + ":stop")
+		keys := redis.Redis_get_by_pattern("kvm:*:stop")
+		if keys != nil {
+			for _, key := range keys {
+				hostname := redis.Redis_get(key)
+				logger.Info(hostname + " stop recording")
+				Stop_recording(hostname)
+				kvm.RecordtoIdle(hostname)
+				redis.Redis_del("kvm:" + hostname + ":stop")
+			}
 		}
 	}
 }
 func monitor_start_signal() {
 	for {
-		hostnames := redis.Redis_get_by_pattern("kvm:*:recording")
-		for _, hostname := range hostnames {
-			logger.Info(hostname + " start recording")
-			ctx, cancel := context.WithCancel(context.Background())
-			Stop_channel[hostname] = cancel
-			Kvm := kvm.Get(hostname)
-			go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
-			kvm.IdletoRecord(hostname)
-			redis.Redis_del("kvm:" + hostname + ":recording")
+		keys := redis.Redis_get_by_pattern("kvm:*:recording")
+		for _, key := range keys {
+			var start_process = func() {
+				hostname := redis.Redis_get(key)
+				logger.Info(hostname + " start recording")
+				ctx, cancel := context.WithCancel(context.Background())
+				Stop_channel[hostname] = cancel
+				Kvm := kvm.Get(hostname)
+				time.Sleep(5 * time.Second)
+				go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
+				kvm.IdletoRecord(hostname)
+				redis.Redis_del("kvm:" + hostname + ":recording")
+			}
+			go start_process()
 		}
 	}
 }
@@ -92,5 +100,8 @@ func stop_recording_all() {
 }
 
 func Stop_recording(hostname string) {
-	Stop_channel[hostname]()
+	_, ok := Stop_channel[hostname]
+	if ok {
+		Stop_channel[hostname]()
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"recorder/config"
+	"recorder/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -38,7 +39,11 @@ func Redis_get(key string) string {
 }
 
 func Redis_get_by_pattern(pattern string) []string {
-	val, _ := RedisClient.Keys(context.Background(), pattern).Result()
+	val, err := RedisClient.Keys(context.Background(), pattern).Result()
+	if err != nil {
+		logger.Error("Search pattern in redis error: " + err.Error())
+		return nil
+	}
 	return val
 }
 
