@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"sort"
+	"bytes"
 
 	"crypto/tls"
 	"encoding/csv"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"os"
 
+	"time"
 	"strconv"
 	"strings"
 
@@ -24,6 +26,7 @@ import (
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb/method"
+	"recorder/pkg/redis"
 )
 
 type ApiResponse struct {
@@ -70,6 +73,11 @@ type Kvm_state struct {
 	Hostname      string `json:"kvm_hostname"`
 	Stream_status string `json:"stream_status"`
 }
+
+type Proj_exec struct {
+	Project     	string `json:"project"`
+	Operation		string `json:"operation`
+} 
 
 func Kvm_list(c *gin.Context) {
 	extra := c.Query("extra")
@@ -525,34 +533,56 @@ func Kvm_status(c *gin.Context) {
 		}
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 		return
-	} else if action == "update" {
-		_, err := method.Exec("UPDATE kvm SET stream_status=? WHERE hostname=?", Req.Stream_status, Req.Hostname)
-		if err != nil {
-			logger.Error("update kvm status error" + err.Error())
-		}
+	}else if action == "update"{
+		// _, err := method.Exec("UPDATE kvm SET stream_status=? WHERE hostname=?",Req.Stream_status, Req.Hostname)
+		// if err != nil{
+			// logger.Error("update kvm status error" + err.Error())	
+		// }
 		var ip string
 		row := method.QueryRow("SELECT ip FROM kvm WHERE hostname=?", Req.Hostname)
-		err = row.Scan(&ip)
-		if err != nil {
-			logger.Error(err.Error())
+		err := row.Scan(&ip)
+		if err != nil{
+			logger.Error(err.Error())	
 		}
 		if Req.Stream_status == "recording" {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			client := &http.Client{Transport: tr}
-			_, err := client.Get("https://" + ip + ":8443/api/switch_mode?mode=motion")
-			if err != nil {
-				logger.Error("update send switch mode request to kvm error" + err.Error())
+			_, err := client.Get("https://"+ip+":8443/api/switch_mode?mode=motion")
+			redis.Redis_set("kvm:"+Req.Hostname+":recording",Req.Hostname)
+			for{
+				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
+				var stream_status string
+				_ = row.Scan(&stream_status)
+				if stream_status == "recording"{
+					break
+				}else{
+					time.Sleep(1 * time.Second)
+				}
+			}
+			if err != nil{
+				logger.Error("update send switch mode request to kvm error" + err.Error())	
 			}
 		} else if Req.Stream_status == "idle" {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			client := &http.Client{Transport: tr}
-			_, err := client.Get("https://" + ip + ":8443/api/switch_mode?mode=kvmd")
-			if err != nil {
-				logger.Error("update send switch mode request to kvm error" + err.Error())
+			_, err := client.Get("https://"+ip+":8443/api/switch_mode?mode=kvmd")
+			redis.Redis_set("kvm:"+Req.Hostname+":stop",Req.Hostname)
+			for{
+				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
+				var stream_status string
+				_ = row.Scan(&stream_status)
+				if stream_status == "idle"{
+					break
+				}else{
+					time.Sleep(1 * time.Second)
+				}
+			}
+			if err != nil{
+				logger.Error("update send switch mode request to kvm error" + err.Error())	
 			}
 		}
 
@@ -605,5 +635,49 @@ func Kvm_genvideo(c *gin.Context) {
 		}
 	}
 	f.WriteString("#EXT-X-ENDLIST")
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+func Project_status(c *gin.Context){
+	body, _ := ioutil.ReadAll(c.Request.Body)
+	var Req Proj_exec
+	_ = json.Unmarshal(body, &Req)
+	if Req.Operation == "start"{
+		rows, err := method.Query("SELECT hostname FROM debug_unit WHERE project=?", Req.Project)
+		if err != nil {
+			logger.Error(err.Error())	
+		}
+		for rows.Next() {
+			var req Kvm_state
+			err = rows.Scan(&req.Hostname)
+			req.Stream_status = "recording"
+			json_data, err := json.Marshal(req)
+			if err != nil {
+				logger.Error(err.Error())	
+			}
+			_, err = http.Post("http://10.227.106.11:5000/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+			if err != nil {
+				logger.Error(err.Error())	
+			}
+		}
+	} else if Req.Operation == "stop"{
+		rows, err := method.Query("SELECT hostname FROM debug_unit WHERE project=?", Req.Project)
+		if err != nil {
+			logger.Error(err.Error())	
+		}
+		for rows.Next() {
+			var req Kvm_state
+			err = rows.Scan(&req.Hostname)
+			req.Stream_status = "idle"
+			json_data, err := json.Marshal(req)
+			if err != nil {
+				logger.Error(err.Error())	
+			}
+			_, err = http.Post("http://10.227.106.11:5000/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+			if err != nil {
+				logger.Error(err.Error())	
+			}
+		}
+	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }

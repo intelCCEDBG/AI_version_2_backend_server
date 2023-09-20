@@ -33,7 +33,8 @@ func Start_backend() {
 	router.GET("/api/kvm/search", kvm_api.Kvm_search)
 	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
 	router.POST("/api/kvm/delete_mapping", kvm_api.Kvm_delete)
-	router.GET("/api/kvm/stream_status", kvm_api.Kvm_status)
+	router.POST("/api/kvm/project_status", kvm_api.Project_status)
+	router.POST("/api/kvm/stream_status", kvm_api.Kvm_status)
 
 
 
