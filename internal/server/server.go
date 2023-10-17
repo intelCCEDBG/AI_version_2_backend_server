@@ -7,6 +7,7 @@ import (
 	service "recorder/internal/mainservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb"
+	"recorder/pkg/rabbitmq"
 	"recorder/pkg/redis"
 )
 
@@ -21,6 +22,7 @@ func Start_server() {
 	}
 	loadstatus.Loadstatus()
 	redis.Redis_init()
+	rabbitmq.Rabbit_init()
 	go loadstatus.Sync_with_mariadb()
 	service.Start_service()
 }
