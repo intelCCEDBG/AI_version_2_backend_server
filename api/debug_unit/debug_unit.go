@@ -18,6 +18,7 @@ type Debug_unit_info struct{
 	Hostname		string	`json:"hostname"`
 	Machine_name	string	`json:"machine_name"`
 	KVM_link		string 	`json:"stream_url"`
+	Record_status	string 	`json:"record_status"`
 	Status			string 	`json:"status"`
 }
 
@@ -71,8 +72,8 @@ func Project_info(c *gin.Context) {
 				if err != nil {
 					logger.Error("Search project info error: " + err.Error())
 				}
-				row = method.QueryRow("SELECT stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
-				err = row.Scan(&tmp.KVM_link)
+				row = method.QueryRow("SELECT stream_status, stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
+				err = row.Scan(&tmp.Record_status, &tmp.KVM_link)
 				if err != nil {
 					logger.Error("Search project info error: " + err.Error())
 				}
@@ -99,8 +100,8 @@ func Project_info(c *gin.Context) {
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}
-			row = method.QueryRow("SELECT stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
-			err = row.Scan(&tmp.KVM_link)
+			row = method.QueryRow("SELECT stream_status, stream_url FROM kvm WHERE hostname=?;",&tmp.Hostname)
+			err = row.Scan(&tmp.Record_status, &tmp.KVM_link)
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}

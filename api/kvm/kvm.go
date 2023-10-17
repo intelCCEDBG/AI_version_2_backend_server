@@ -2,7 +2,7 @@ package kvm_api
 
 import (
 	"fmt"
-
+	"sync"
 	"sort"
 	"bytes"
 
@@ -27,6 +27,7 @@ import (
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb/method"
 	"recorder/pkg/redis"
+	"recorder/config"
 )
 
 type ApiResponse struct {
@@ -575,6 +576,7 @@ func Kvm_status(c *gin.Context) {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
 				var stream_status string
 				_ = row.Scan(&stream_status)
+				fmt.Println(stream_status)
 				if stream_status == "idle"{
 					break
 				}else{
@@ -647,7 +649,9 @@ func Project_status(c *gin.Context){
 		if err != nil {
 			logger.Error(err.Error())	
 		}
+		var wg sync.WaitGroup
 		for rows.Next() {
+			wg.Add(1)
 			var req Kvm_state
 			err = rows.Scan(&req.Hostname)
 			req.Stream_status = "recording"
@@ -655,17 +659,28 @@ func Project_status(c *gin.Context){
 			if err != nil {
 				logger.Error(err.Error())	
 			}
-			_, err = http.Post("http://10.227.106.11:5000/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
-			if err != nil {
-				logger.Error(err.Error())	
-			}
+			Port := config.Viper.GetString("SERVER_PORT")
+			http.DefaultClient.Timeout = time.Second * 20
+			go func(Port string, json_data []byte, Hostname string){
+				defer wg.Done()
+				http.Post("http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+				fmt.Println(Hostname)
+			}(Port, json_data, req.Hostname)
+			// req, err := http.NewRequest("POST", "http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", bytes.NewReader(marshalled))
+
+			// if err != nil {
+			// 	logger.Error(err.Error())	
+			// }
 		}
+		wg.Wait()
 	} else if Req.Operation == "stop"{
 		rows, err := method.Query("SELECT hostname FROM debug_unit WHERE project=?", Req.Project)
 		if err != nil {
 			logger.Error(err.Error())	
 		}
+		var wg sync.WaitGroup
 		for rows.Next() {
+			wg.Add(1)
 			var req Kvm_state
 			err = rows.Scan(&req.Hostname)
 			req.Stream_status = "idle"
@@ -673,11 +688,17 @@ func Project_status(c *gin.Context){
 			if err != nil {
 				logger.Error(err.Error())	
 			}
-			_, err = http.Post("http://10.227.106.11:5000/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
-			if err != nil {
-				logger.Error(err.Error())	
-			}
+			Port := config.Viper.GetString("SERVER_PORT")
+			http.DefaultClient.Timeout = time.Second * 20
+			go func(Port string, json_data []byte){
+				defer wg.Done()
+				http.Post("http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+			}(Port, json_data)
+			// if err != nil {
+				// logger.Error(err.Error())	
+			// }
 		}
+		wg.Wait()
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
