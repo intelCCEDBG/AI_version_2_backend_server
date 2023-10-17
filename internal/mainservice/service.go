@@ -59,6 +59,7 @@ func monitor_stop_signal() {
 				redis.Redis_del("kvm:" + hostname + ":stop")
 			}
 		}
+		time.Sleep(5 * time.Second)
 	}
 }
 func monitor_start_signal() {
@@ -78,6 +79,7 @@ func monitor_start_signal() {
 			}
 			go start_process()
 		}
+		time.Sleep(5 * time.Second)
 	}
 }
 func servershutdown(Connection_close chan int) {
