@@ -549,9 +549,10 @@ func Kvm_status(c *gin.Context) {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
-			client := &http.Client{Transport: tr}
+			client := &http.Client{Transport: tr,Timeout: 7 * time.Second}
 			_, err := client.Get("https://"+ip+":8443/api/switch_mode?mode=motion")
 			redis.Redis_set("kvm:"+Req.Hostname+":recording",Req.Hostname)
+			fmt.Println("finish writing")
 			for{
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
 				var stream_status string

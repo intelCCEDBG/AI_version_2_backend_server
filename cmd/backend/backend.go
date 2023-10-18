@@ -12,7 +12,9 @@ import (
 func main() {
 	fmt.Println("Starting server...")
 	config.LoadConfig()
-	_ = redis.Redis_init();
+	redis.Redis_init()
+	// fmt.Println(a)
+	// redis.Redis_set("kvm:1","123")
 	logger.InitLogger(config.Viper.GetString("LOG_FILE_PATH"))
 	err := mariadb.ConnectDB()
 	if err != nil {

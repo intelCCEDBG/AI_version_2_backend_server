@@ -22,6 +22,7 @@ func Start_server() {
 	}
 	loadstatus.Loadstatus()
 	redis.Redis_init()
+	redis.Redis_set("test", "test")
 	rabbitmq.Rabbit_init()
 	go loadstatus.Sync_with_mariadb()
 	service.Start_service()

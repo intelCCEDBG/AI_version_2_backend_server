@@ -77,7 +77,7 @@ func monitor_start_signal() {
 				kvm.IdletoRecord(hostname)
 				redis.Redis_del("kvm:" + hostname + ":recording")
 			}
-			go start_process()
+			start_process()
 		}
 		time.Sleep(5 * time.Second)
 	}
