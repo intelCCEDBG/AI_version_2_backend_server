@@ -46,7 +46,7 @@ func Update_kvm_list() {
 	for _, element := range kvm.All_kvm {
 		All_list, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where hostname = " + "'" + element.Hostname + "'")
 		if err != nil {
-			logger.Error("Query idle kvm error: " + err.Error())
+			logger.Error("Query kvm " + element.Hostname + " error: " + err.Error())
 		}
 		for All_list.Next() {
 			var tmp = kvm.Kvm{}
