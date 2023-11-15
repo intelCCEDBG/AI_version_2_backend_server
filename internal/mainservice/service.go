@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	ai "recorder/internal/AI"
+	"recorder/internal/ai"
 	"recorder/internal/ffmpeg"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
@@ -27,6 +29,7 @@ func Start_service() {
 	go monitor_stop_signal()
 	go monitor_start_signal()
 	go monitor_stop_abnormal_signal()
+	go ai.Start_ai_monitoring()
 	Quit := make(chan os.Signal, 1)
 	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
 	<-Quit
