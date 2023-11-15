@@ -11,3 +11,13 @@ func Update_kvm_status(hostname string, status string) {
 		logger.Error("Update kvm status error: " + err.Error())
 	}
 }
+
+func Get_kvm_status(hostname string) {
+	KVM, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where hostname = " + "'" + hostname + "'")
+	if err != nil {
+		logger.Error("Query kvm " + hostname + " error: " + err.Error())
+	}
+	for KVM.Next() {
+
+	}
+}

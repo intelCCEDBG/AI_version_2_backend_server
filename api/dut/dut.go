@@ -20,6 +20,7 @@ type Dut struct{
 	Cycle_cnt			string	`json:"cycle_cnt"`
 	Error_timestamp 	string	`json:"error_timestamp"`
 	Path           		string	`json:"path"`
+	Threshold			string	`json:"threshold"`
 }
 
 func Dut_list(c *gin.Context) {
@@ -58,7 +59,7 @@ func Dut_all_info(c *gin.Context) {
 	}
 	for rows.Next() {
 		var tmp Dut
-		err = rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path)
+		err = rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path, &tmp.Threshold)
 		if err != nil {
 			logger.Error("Search all dut info error: " + err.Error())
 		}

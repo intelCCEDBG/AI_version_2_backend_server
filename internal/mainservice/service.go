@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	ai "recorder/internal/AI"
-	"recorder/internal/ai"
 	"recorder/internal/ffmpeg"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
@@ -28,6 +27,7 @@ func Start_service() {
 	get_recording_kvm_back()
 	go monitor_stop_signal()
 	go monitor_start_signal()
+	go monitor_error_signal()
 	go monitor_stop_abnormal_signal()
 	go ai.Start_ai_monitoring()
 	Quit := make(chan os.Signal, 1)
@@ -65,6 +65,21 @@ func monitor_stop_signal() {
 		time.Sleep(5 * time.Second)
 	}
 }
+func monitor_error_signal() {
+	for {
+		keys := redis.Redis_get_by_pattern("kvm:*:error")
+		if keys != nil {
+			for _, key := range keys {
+				hostname := redis.Redis_get(key)
+				logger.Info(hostname + " error occur while recording")
+				Stop_recording(hostname)
+				kvm.RecordtoError(hostname)
+				redis.Redis_del("kvm:" + hostname + ":error")
+			}
+		}
+		time.Sleep(5 * time.Second)
+	}
+}
 func monitor_start_signal() {
 	for {
 		keys := redis.Redis_get_by_pattern("kvm:*:recording")
@@ -78,7 +93,7 @@ func monitor_start_signal() {
 				time.Sleep(5 * time.Second)
 				go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
 				kvm.IdletoRecord(hostname)
-				redis.Redis_del("kvm:" + hostname + ":recording")
+				redis.Redis_del(key)
 			}
 			start_process()
 		}

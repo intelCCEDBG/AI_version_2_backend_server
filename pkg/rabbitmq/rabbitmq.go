@@ -39,6 +39,7 @@ func Rabbit_init() {
 	username := config.Viper.GetString("RABBITMQ_USERNAME")
 	password := config.Viper.GetString("RABBITMQ_PASSWORD")
 	Url := "amqp://" + username + ":" + password + "@" + hostname + ":" + port + "/"
+	logger.Info(Url)
 	Connection, err = NewRabbitMQ(Url)
 	if err != nil {
 		logger.Error("Failed to connect to RabbitMQ")
