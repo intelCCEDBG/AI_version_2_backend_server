@@ -4,20 +4,6 @@ import (
 	kvm_query "recorder/pkg/mariadb/kvm"
 )
 
-type Kvm struct {
-	Hostname          string
-	Stream_url        string
-	Stream_status     string
-	Stream_interface  string
-	Start_record_time int64
-}
-type Target struct {
-	Hostname string
-	Status   string
-	Ssim     int
-	Wait     int
-}
-
 // var Recording_kvm map[string]*Kvm
 // var All_kvm map[string]*Kvm
 // var Idle_kvm map[string]*Kvm
@@ -74,8 +60,4 @@ func IdletoRecord(hostname string) {
 	// Recording_kvm[hostname] = Idle_kvm[hostname]
 	// delete(Idle_kvm, hostname)
 	kvm_query.Update_kvm_status(hostname, "recording")
-}
-
-func Get(hostname string) Kvm {
-	return *All_kvm[hostname]
 }

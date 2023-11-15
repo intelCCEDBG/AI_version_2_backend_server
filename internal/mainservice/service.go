@@ -9,6 +9,7 @@ import (
 	"recorder/internal/ffmpeg"
 	"recorder/internal/kvm"
 	"recorder/pkg/logger"
+	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/redis"
 	"syscall"
 	"time"
@@ -53,14 +54,12 @@ func monitor_stop_abnormal_signal() {
 func monitor_stop_signal() {
 	for {
 		keys := redis.Redis_get_by_pattern("kvm:*:stop")
-		if keys != nil {
-			for _, key := range keys {
-				hostname := redis.Redis_get(key)
-				logger.Info(hostname + " stop recording")
-				Stop_recording(hostname)
-				kvm.RecordtoIdle(hostname)
-				redis.Redis_del("kvm:" + hostname + ":stop")
-			}
+		for _, key := range keys {
+			hostname := redis.Redis_get(key)
+			logger.Info(hostname + " stop recording")
+			Stop_recording(hostname)
+			kvm.RecordtoIdle(hostname)
+			redis.Redis_del("kvm:" + hostname + ":stop")
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -68,14 +67,12 @@ func monitor_stop_signal() {
 func monitor_error_signal() {
 	for {
 		keys := redis.Redis_get_by_pattern("kvm:*:error")
-		if keys != nil {
-			for _, key := range keys {
-				hostname := redis.Redis_get(key)
-				logger.Info(hostname + " error occur while recording")
-				Stop_recording(hostname)
-				kvm.RecordtoError(hostname)
-				redis.Redis_del("kvm:" + hostname + ":error")
-			}
+		for _, key := range keys {
+			hostname := redis.Redis_get(key)
+			logger.Info(hostname + " error occur while recording")
+			Stop_recording(hostname)
+			kvm.RecordtoError(hostname)
+			redis.Redis_del("kvm:" + hostname + ":error")
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -89,9 +86,9 @@ func monitor_start_signal() {
 				logger.Info(hostname + " start recording")
 				ctx, cancel := context.WithCancel(context.Background())
 				Stop_channel[hostname] = cancel
-				Kvm := kvm.Get(hostname)
+				Kvm := kvm_query.Get_kvm_status(hostname)
 				time.Sleep(5 * time.Second)
-				go ffmpeg.Record(Stop_signal_out_channel, &Kvm, ctx)
+				go ffmpeg.Record(Stop_signal_out_channel, Kvm, ctx)
 				kvm.IdletoRecord(hostname)
 				redis.Redis_del(key)
 			}
@@ -102,11 +99,12 @@ func monitor_start_signal() {
 }
 func servershutdown(Connection_close chan int) {
 	stop_recording_all()
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 	Connection_close <- 1
 }
 func get_recording_kvm_back() {
-	for _, element := range kvm.Recording_kvm {
+	kvms := kvm_query.Get_recording_kvms()
+	for _, element := range kvms {
 		ctx, cancel := context.WithCancel(context.Background())
 		Stop_channel[element.Hostname] = cancel
 		go ffmpeg.Record(Stop_signal_out_channel, element, ctx)
@@ -123,5 +121,6 @@ func Stop_recording(hostname string) {
 	_, ok := Stop_channel[hostname]
 	if ok {
 		Stop_channel[hostname]()
+		delete(Stop_channel, hostname)
 	}
 }

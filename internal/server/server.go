@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"recorder/config"
-	"recorder/internal/loadstatus"
 	service "recorder/internal/mainservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb"
@@ -20,11 +19,11 @@ func Start_server() {
 		logger.Error("Connect to mariadb error: " + err.Error())
 		return
 	}
-	loadstatus.Loadstatus()
+	// loadstatus.Loadstatus()
 	redis.Redis_init()
 	redis.Redis_set("test", "test")
 	redis.Redis_clear()
 	rabbitmq.Rabbit_init()
-	go loadstatus.Sync_with_mariadb()
+	// go loadstatus.Sync_with_mariadb()
 	service.Start_service()
 }

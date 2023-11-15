@@ -2,8 +2,8 @@ package ai
 
 import (
 	"encoding/json"
-	"recorder/internal/kvm"
 	"recorder/pkg/logger"
+	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/rabbitmq"
 	"time"
 )
@@ -21,18 +21,9 @@ func Start_ai_monitoring() {
 		logger.Error("Declare to rabbit error: " + err.Error())
 		return
 	}
-	// var message Message
-	// message.Hostname = "18F_AI05"
-	// // message.Path = "/home/media/image" + element.Hostname + "/"
-	// jsonMessage, _ := json.Marshal(message)
-	// err = rabbitmq.Publish("AI_queue1", jsonMessage)
-	// if err != nil {
-	// 	logger.Error("Send to rabbit error: " + err.Error())
-	// 	return
-	// }
-	// logger.Info("send rabbit")
 	for {
-		for _, element := range kvm.Recording_kvm {
+		kvms := kvm_query.Get_recording_kvms()
+		for _, element := range kvms {
 			var message Message
 			message.Hostname = element.Hostname
 			// message.Path = "/home/media/image" + element.Hostname + "/"
