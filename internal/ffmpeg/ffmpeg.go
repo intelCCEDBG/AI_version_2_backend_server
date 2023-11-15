@@ -52,7 +52,7 @@ func Record(ch chan<- string, mh structure.Kvm, ctx context.Context) {
 	reso := "scale=320:180"
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url,
 		"-codec", "libx264", "-preset", "ultrafast", "-f", "hls", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
-		"-r", "0.2", "-update", "1", image_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
+		"-r", "0.2", "-update", "1", image_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png", "-vframes"+"1", image_path+"cover.png")
 	// logger.Info(cmd.String())
 	in, err := cmd.StdinPipe()
 	if err != nil {
