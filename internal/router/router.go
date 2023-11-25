@@ -4,9 +4,9 @@ import (
 	"recorder/config"
 
 	dbghost_api "recorder/api/debug_host"
+	dbgunit_api "recorder/api/debug_unit"
 	dut_api "recorder/api/dut"
 	kvm_api "recorder/api/kvm"
-	dbgunit_api "recorder/api/debug_unit"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,7 +25,7 @@ func Start_backend() {
 	Port := config.Viper.GetString("SERVER_PORT")
 
 	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
-	
+
 	//kvm
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
@@ -36,8 +36,6 @@ func Start_backend() {
 	router.POST("/api/kvm/project_status", kvm_api.Project_status)
 	router.OPTIONS("/api/kvm/project_status", kvm_api.Project_status)
 	router.POST("/api/kvm/stream_status", kvm_api.Kvm_status)
-
-
 
 	//debug_host
 	router.GET("/api/dbg/list", dbghost_api.Dbghost_list)
@@ -51,7 +49,7 @@ func Start_backend() {
 	router.GET("/api/dut/all_info", dut_api.Dut_all_info)
 	router.GET("/api/dut/search", dut_api.Dut_search)
 
-	router.POST("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
+	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	//debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)

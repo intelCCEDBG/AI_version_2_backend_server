@@ -21,6 +21,7 @@ var Start_signal_out_channel chan string
 
 func init() {
 	Stop_channel = make(map[string]context.CancelFunc)
+	Stop_signal_out_channel = make(chan string)
 }
 
 func Start_service() {
@@ -48,7 +49,7 @@ func monitor_stop_abnormal_signal() {
 	for {
 		hostname := <-Stop_signal_out_channel
 		logger.Info(hostname + " stop abnormal recording")
-		kvm.RecordtoIdle(hostname)
+		kvm.RecordtoError(hostname)
 	}
 }
 func monitor_stop_signal() {

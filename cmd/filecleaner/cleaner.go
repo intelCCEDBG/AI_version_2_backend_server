@@ -1,0 +1,5 @@
+package filecleaner
+
+func main() {
+
+}

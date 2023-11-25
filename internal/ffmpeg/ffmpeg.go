@@ -19,7 +19,7 @@ func init() {
 	}
 }
 
-func Record(ch chan<- string, mh structure.Kvm, ctx context.Context) {
+func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	hostname := mh.Hostname
 	url := mh.Stream_url
 	// query.Update_kvm_status(hostname, "recording")
@@ -52,8 +52,9 @@ func Record(ch chan<- string, mh structure.Kvm, ctx context.Context) {
 	reso := "scale=320:180"
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url,
 		"-codec", "libx264", "-preset", "ultrafast", "-f", "hls", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
-		"-r", "0.2", "-update", "1", image_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png", "-vframes"+"1", image_path+"cover.png")
-	// logger.Info(cmd.String())
+		"-r", "0.2", "-update", "1", image_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
+	cmd2 := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url, "-vframes", "1", image_path+"cover.png")
+	logger.Info(cmd.String())
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		logger.Error(err.Error())
@@ -64,6 +65,7 @@ func Record(ch chan<- string, mh structure.Kvm, ctx context.Context) {
 	}
 	// logger.Info("test1")
 	err = cmd.Start()
+	cmd2.Start()
 	mh.Start_record_time = time.Now().Unix()
 	if err != nil {
 		logger.Error(err.Error())
@@ -74,10 +76,12 @@ func Record(ch chan<- string, mh structure.Kvm, ctx context.Context) {
 	}()
 	select {
 	case <-ctx.Done():
-		fmt.Println("send exit signal")
-		io.WriteString(in, "q")
-		if err != nil {
-			logger.Error(err.Error())
+		{
+			fmt.Println("send exit signal")
+			io.WriteString(in, "q")
+			if err != nil {
+				logger.Error(err.Error())
+			}
 		}
 	case err := <-cmdDone:
 		if err != nil {
