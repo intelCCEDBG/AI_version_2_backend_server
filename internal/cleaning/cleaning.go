@@ -23,7 +23,7 @@ func cleaning(currenttime time.Time, period int) {
 				if !subitem.IsDir() {
 					// fmt.Println(subitem.Name())
 					if len(subitem.Name()) > 19 {
-						tm, err := time.Parse("2006-01-02_15:04:05", subitem.Name()[:19])
+						tm, err := time.Parse("2006-01-02_15-04-05", subitem.Name()[:19])
 						if err != nil {
 							fmt.Println(err)
 						}
@@ -31,6 +31,7 @@ func cleaning(currenttime time.Time, period int) {
 							os.Remove("/home/media/video/" + item.Name() + "/" + subitem.Name())
 							fmt.Println("Removed " + item.Name() + "/" + subitem.Name())
 						}
+
 					}
 				}
 			}
