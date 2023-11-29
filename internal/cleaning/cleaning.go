@@ -24,6 +24,9 @@ func cleaning(currenttime time.Time, period int) {
 					// fmt.Println(subitem.Name())
 					if len(subitem.Name()) > 19 {
 						tm, err := time.Parse("2006-01-02_15:04:05", subitem.Name()[:19])
+						if err != nil {
+							fmt.Println(err)
+						}
 						if currenttime.Sub(tm).Hours() > float64(period) && err == nil {
 							os.Remove("/home/media/video/" + item.Name() + "/" + subitem.Name())
 							fmt.Println("Removed " + item.Name() + "/" + subitem.Name())
