@@ -26,16 +26,18 @@ func init() {
 
 func Start_service() {
 	Connection_close := make(chan int, 1)
+	ctx, cancel := context.WithCancel(context.Background())
 	get_recording_kvm_back()
 	go monitor_stop_signal()
 	go monitor_start_signal()
 	go monitor_error_signal()
 	go monitor_stop_abnormal_signal()
-	go ai.Start_ai_monitoring()
+	go ai.Start_ai_monitoring(ctx)
 	Quit := make(chan os.Signal, 1)
 	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
 	<-Quit
 	fmt.Println("Server is shutting down...")
+	cancel()
 	servershutdown(Connection_close)
 	select {
 	case <-Connection_close:

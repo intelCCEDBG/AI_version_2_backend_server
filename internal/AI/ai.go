@@ -7,10 +7,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"recorder/config"
 	"recorder/pkg/logger"
-	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/rabbitmq"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -23,32 +22,65 @@ type Message struct {
 	// Path     string `json:"path"`
 }
 
-func Start_ai_monitoring() {
+func Start_ai_monitoring(ctx context.Context) {
 	_, err := rabbitmq.Declare("AI_queue1")
 	if err != nil {
 		logger.Error("Declare to rabbit error: " + err.Error())
 		return
 	}
-	for {
-		kvms := kvm_query.Get_recording_kvms()
-		for _, element := range kvms {
-			context := context.Background()
-			go FS_monitor(element.Hostname, context)
-		}
-		time.Sleep(5 * time.Second)
-	}
+	go FS_monitor_ramdisk(ctx)
+
+	<-ctx.Done()
+
 }
 
-func FS_monitor(hostname string, ctx context.Context) {
-	directory := "/home/media/image/" + hostname
+// func FS_monitor(hostname string, ctx context.Context) {
+// 	directory := "/home/media/image/" + hostname
 
+// 	watcher, err := fsnotify.NewWatcher()
+// 	if err != nil {
+// 		logger.Error(err.Error())
+// 	}
+// 	defer watcher.Close()
+
+// 	err = watcher.Add(directory)
+// 	if err != nil {
+// 		logger.Error(err.Error())
+// 	}
+
+//		for {
+//			select {
+//			case event, ok := <-watcher.Events:
+//				if !ok {
+//					return
+//				}
+//				if event.Op&fsnotify.Write == fsnotify.Write {
+//					filename := filepath.Base(event.Name)
+//					logger.Info("modified file:" + filename)
+//					if filename == hostname+".png" {
+//						err = Send_to_rabbitMQ(hostname)
+//						if err != nil {
+//							logger.Error(err.Error())
+//						}
+//					}
+//				}
+//			case err, ok := <-watcher.Errors:
+//				if !ok {
+//					return
+//				}
+//				logger.Error(err.Error())
+//			}
+//		}
+//	}
+func FS_monitor_ramdisk(ctx context.Context) {
+	ramdisk_path := config.Viper.GetString("ramdisk_path")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		logger.Error(err.Error())
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(directory)
+	err = watcher.Add(ramdisk_path)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -62,27 +94,23 @@ func FS_monitor(hostname string, ctx context.Context) {
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				filename := filepath.Base(event.Name)
 				logger.Info("modified file:" + filename)
-				if filename == hostname+".png" {
-					err = Send_to_rabbitMQ(hostname)
-					if err != nil {
-						logger.Error(err.Error())
-					}
-				}
+				hostname := filename[:len(filename)-4]
+				go Send_to_rabbitMQ(hostname, ramdisk_path+hostname, "2000")
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return
 			}
 			logger.Error(err.Error())
+		case <-ctx.Done():
+			return
 		}
 	}
 }
-
-func Send_to_rabbitMQ(hostname string) (err error) {
+func Send_to_rabbitMQ(hostname string, path string, expire_time string) (err error) {
 	var message Message
 	message.Hostname = hostname
-	Path := "/home/media/image/" + hostname + "/" + hostname + ".png"
-	imageFile, err := os.Open(Path)
+	imageFile, err := os.Open(path)
 	if err != nil {
 		return err
 	}
@@ -92,7 +120,7 @@ func Send_to_rabbitMQ(hostname string) (err error) {
 	}
 	message.Image = base64.StdEncoding.EncodeToString(imageData)
 	jsonMessage, _ := json.Marshal(message)
-	rabbitmq.Publish("AI_queue1", jsonMessage)
+	rabbitmq.Publish_with_expiration("AI_queue1", jsonMessage, expire_time)
 	imageFile.Close()
 	return nil
 }

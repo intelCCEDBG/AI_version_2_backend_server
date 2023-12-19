@@ -71,6 +71,24 @@ func Publish(queue string, body []byte) error {
 		},
 	)
 }
+
+func Publish_with_expiration(queue string, body []byte, expiratioln string) error {
+	if channel == nil {
+		return errors.New("failed to publish message: channel is nil")
+	}
+	return channel.Publish(
+		"",
+		queue,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+			Expiration:  expiratioln,
+		},
+	)
+}
+
 func Consume(queue string) (<-chan amqp.Delivery, error) {
 	if channel == nil {
 		return nil, errors.New("failed to consume message: channel is nil")
