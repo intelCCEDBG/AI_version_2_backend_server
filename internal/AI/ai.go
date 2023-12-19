@@ -34,44 +34,41 @@ func Start_ai_monitoring(ctx context.Context) {
 
 }
 
-// func FS_monitor(hostname string, ctx context.Context) {
-// 	directory := "/home/media/image/" + hostname
-
-// 	watcher, err := fsnotify.NewWatcher()
-// 	if err != nil {
-// 		logger.Error(err.Error())
-// 	}
-// 	defer watcher.Close()
-
-// 	err = watcher.Add(directory)
-// 	if err != nil {
-// 		logger.Error(err.Error())
-// 	}
-
-//		for {
-//			select {
-//			case event, ok := <-watcher.Events:
-//				if !ok {
-//					return
-//				}
-//				if event.Op&fsnotify.Write == fsnotify.Write {
-//					filename := filepath.Base(event.Name)
-//					logger.Info("modified file:" + filename)
-//					if filename == hostname+".png" {
-//						err = Send_to_rabbitMQ(hostname)
-//						if err != nil {
-//							logger.Error(err.Error())
+//	func FS_monitor(hostname string, ctx context.Context) {
+//		directory := "/home/media/image/" + hostname
+//		watcher, err := fsnotify.NewWatcher()
+//		if err != nil {
+//			logger.Error(err.Error())
+//		}
+//		defer watcher.Close()
+//		err = watcher.Add(directory)
+//		if err != nil {
+//			logger.Error(err.Error())
+//		}
+//			for {
+//				select {
+//				case event, ok := <-watcher.Events:
+//					if !ok {
+//						return
+//					}
+//					if event.Op&fsnotify.Write == fsnotify.Write {
+//						filename := filepath.Base(event.Name)
+//						logger.Info("modified file:" + filename)
+//						if filename == hostname+".png" {
+//							err = Send_to_rabbitMQ(hostname)
+//							if err != nil {
+//								logger.Error(err.Error())
+//							}
 //						}
 //					}
+//				case err, ok := <-watcher.Errors:
+//					if !ok {
+//						return
+//					}
+//					logger.Error(err.Error())
 //				}
-//			case err, ok := <-watcher.Errors:
-//				if !ok {
-//					return
-//				}
-//				logger.Error(err.Error())
 //			}
 //		}
-//	}
 func FS_monitor_ramdisk(ctx context.Context) {
 	ramdisk_path := config.Viper.GetString("ramdisk_path")
 	watcher, err := fsnotify.NewWatcher()
@@ -88,14 +85,15 @@ func FS_monitor_ramdisk(ctx context.Context) {
 	for {
 		select {
 		case event, ok := <-watcher.Events:
+			// logger.Info("Get event!")
 			if !ok {
 				return
 			}
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				filename := filepath.Base(event.Name)
-				logger.Info("modified file:" + filename)
+				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
-				go Send_to_rabbitMQ(hostname, ramdisk_path+hostname, "2000")
+				go Send_to_rabbitMQ(hostname, ramdisk_path+filename, "2000")
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
