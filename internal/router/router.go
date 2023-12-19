@@ -36,18 +36,23 @@ func Start_backend() {
 	router.POST("/api/kvm/project_status", kvm_api.Project_status)
 	router.OPTIONS("/api/kvm/project_status", kvm_api.Project_status)
 	router.POST("/api/kvm/stream_status", kvm_api.Kvm_status)
+	router.GET("/api/kvm/modify", kvm_api.Kvm_modify)
 
 	//debug_host
 	router.GET("/api/dbg/list", dbghost_api.Dbghost_list)
 	router.GET("/api/dbg/info", dbghost_api.Dbghost_info)
 	router.GET("/api/dbg/all_info", dbghost_api.Dbghost_all_info)
 	router.GET("/api/dbg/search", dbghost_api.Dbghost_search)
+	router.GET("/api/dbg/modify", dbghost_api.Dbghost_modify)
 
 	//dut
 	router.GET("/api/dut/list", dut_api.Dut_list)
 	router.GET("/api/dut/info", dut_api.Dut_info)
 	router.GET("/api/dut/all_info", dut_api.Dut_all_info)
 	router.GET("/api/dut/search", dut_api.Dut_search)
+	router.GET("/api/dut/modify", dut_api.Dut_modify)
+	router.GET("/api/dut/status", dut_api.Dut_status)
+
 
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)

@@ -15,12 +15,12 @@ type Dutlist_Response struct {
 
 type Dut struct{
 	Machine_name		string	`json:"machine"`
-	Ssim 				string	`json:"ssim"`
-	Status				string	`json:"status"`
-	Cycle_cnt			string	`json:"cycle_cnt"`
+	Ssim 				int		`json:"ssim"`
+	Status				int		`json:"status"`
+	Cycle_cnt			int		`json:"cycle_cnt"`
 	Error_timestamp 	string	`json:"error_timestamp"`
 	Path           		string	`json:"path"`
-	Threshold			string	`json:"threshold"`
+	Threshold			int		`json:"threshold"`
 }
 
 func Dut_list(c *gin.Context) {
@@ -72,7 +72,7 @@ func Dut_info(c *gin.Context) {
 	machine := c.Query("machine")
 	rows := method.QueryRow("SELECT * FROM machine WHERE machine_name=?",machine)
 	var tmp Dut
-	err := rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path)
+	err := rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path, &tmp.Threshold)
 	if err != nil {
 		logger.Error("Search dut information error: " + err.Error())
 	}
@@ -88,4 +88,29 @@ func Dut_search(c *gin.Context) {
 		logger.Error("Search dut mapping error" + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
+}
+
+func Dut_modify(c *gin.Context) {
+	machine_name := c.Query("machine")
+	ssim := c.Query("ssim")
+	threshold := c.Query("threshold")
+	_, err := method.Exec("UPDATE machine SET ssim=?, threshold=? WHERE machine_name=?", ssim, threshold, machine_name)
+	if err != nil {
+		logger.Error("Search dut mapping error" + err.Error())
+		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
+		return
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+func Dut_status(c *gin.Context) {
+	hostname := c.Query("hostname")
+	status := c.Query("status")
+	_, err := method.Exec("UPDATE machine SET status=? WHERE machine_name = (SELECT machine_name FROM debug_unit WHERE hostname=?)", status, hostname)
+	if err != nil {
+		logger.Error("update dut status error" + err.Error())
+		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
+		return
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }

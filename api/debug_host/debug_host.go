@@ -86,3 +86,15 @@ func Dbghost_search(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
+
+func Dbghost_modify(c *gin.Context) {
+	ip := c.Query("ip")
+	owner := c.Query("owner")
+	_, err := method.Exec("UPDATE debug_host SET owner=? WHERE ip=?", owner, ip)
+	if err != nil {
+		logger.Error("Modify dbg_host info error" + err.Error())
+		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
+		return
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
