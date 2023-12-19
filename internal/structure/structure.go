@@ -13,3 +13,7 @@ type Target struct {
 	Ssim     int
 	Wait     int
 }
+type Result_message struct {
+	Hostname string `json:"hostname"`
+	Coord    string `json:"coord"`
+}
