@@ -609,16 +609,21 @@ func Kvm_status(c *gin.Context) {
 
 }
 func Kvm_genvideo(c *gin.Context) {
-	body, _ := io.ReadAll(c.Request.Body)
 	var Req Video_info
-	_ = json.Unmarshal(body, &Req)
+	Req.Hostname = c.Query("kvm_hostname")
+	Req.Hour, _ = strconv.Atoi(c.Query("hour"))
+	Req.Duration, _ = strconv.Atoi(c.Query("duration"))
+	Req.Minute, _ = strconv.Atoi(c.Query("minute"))
 	fmt.Println(Req.Duration)
 	fmt.Println(Req.Hostname)
 	files, err := os.ReadDir("/home/media/video/" + Req.Hostname + "/")
 	if err != nil {
 		logger.Error("List video dir fail: " + err.Error())
 	}
-
+	currentTime := time.Now()
+	today_date_string := currentTime.Format("2006-01-02")
+	yesterday_date_string := currentTime.AddDate(0, 0, -1).Format("2006-01-02")
+	fmt.Println(today_date_string)
 	var filenames []string
 	for _, file := range files {
 		filenames = append(filenames, file.Name())
@@ -644,8 +649,17 @@ func Kvm_genvideo(c *gin.Context) {
 	} else {
 		m = strconv.Itoa(Req.Minute)
 	}
+	reqtime := Req.Hour*100 + Req.Minute
+	ctime := time.Now().Hour()*100 + time.Now().Minute()
+	var datestring string
+	if reqtime > ctime {
+		datestring = today_date_string
+	} else {
+		datestring = yesterday_date_string
+	}
+	fmt.Println(datestring)
 	for ii, filename := range filenames {
-		if strings.Contains(filename, "2023-08-16_"+h+"-"+m) {
+		if strings.Contains(filename, datestring+"_"+h+"-"+m) {
 			for i := 0; i < Req.Duration/10; i++ {
 				f.WriteString("#EXTINF:10.000000,\n")
 				f.WriteString(filenames[ii+i] + "\n")
@@ -716,6 +730,20 @@ func Project_status(c *gin.Context) {
 			// }
 		}
 		wg.Wait()
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+func Kvm_modify(c *gin.Context) {
+	hostname := c.Query("hostname")
+	ip := c.Query("ip")
+	nas_ip := c.Query("nas_ip")
+	owner := c.Query("owner")
+	_, err := method.Exec("UPDATE kvm SET ip=?, owner=?, nas_ip=?, stream_url=? WHERE hostname=?", ip, owner, nas_ip, "http://"+ip+":8081", hostname)
+	if err != nil {
+		logger.Error("Modify kvm info error" + err.Error())
+		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
+		return
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
