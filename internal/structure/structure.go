@@ -15,5 +15,15 @@ type Target struct {
 }
 type Result_message struct {
 	Hostname string `json:"hostname"`
-	Coord    string `json:"coord"`
+	Label    int64  `json:"label"`
+	Coords   string `json:"coords"`
+	Created  int64  `json:"created"`
+	Expire   int64  `json:"expire_time"`
+}
+type DUT struct {
+	Machine_name string
+	Ssim         int
+	Cycle_cnt    int
+	Status       string
+	Threshhold   int
 }

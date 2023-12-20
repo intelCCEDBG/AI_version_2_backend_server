@@ -2,12 +2,21 @@ package consumer
 
 import (
 	"encoding/json"
+	"recorder/config"
 	"recorder/internal/structure"
 	"recorder/pkg/logger"
+	"recorder/pkg/mariadb"
 	"recorder/pkg/rabbitmq"
 )
 
 func Start_consumer() {
+	config.LoadConfig()
+	logger.InitLogger(config.Viper.GetString("CONSUMER_LOG_FILE_PATH"))
+	err := mariadb.ConnectDB()
+	if err != nil {
+		logger.Error("Connect to mariadb error: " + err.Error())
+		return
+	}
 	rabbitmq.Rabbit_init()
 	queue, err := rabbitmq.Consume("result_queue")
 	if err != nil {
@@ -19,7 +28,7 @@ func Start_consumer() {
 		if err != nil {
 			logger.Error(err.Error())
 		} else {
-			logger.Info("Received from AI: " + data.Hostname + " " + data.Coord)
+			logger.Info("Received from AI: " + data.Hostname + " " + data.Coords)
 		}
 	}
 }
