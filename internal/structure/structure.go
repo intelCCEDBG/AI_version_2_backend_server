@@ -14,11 +14,11 @@ type Target struct {
 	Wait     int
 }
 type Result_message struct {
-	Hostname string `json:"hostname"`
-	Label    int64  `json:"label"`
-	Coords   string `json:"coords"`
-	Created  int64  `json:"created"`
-	Expire   int64  `json:"expire_time"`
+	Hostname string    `json:"hostname"`
+	Label    int64     `json:"label"`
+	Coords   []float64 `json:"coords"`
+	Created  int64     `json:"created"`
+	Expire   int64     `json:"expire"`
 }
 type DUT struct {
 	Machine_name string

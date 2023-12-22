@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"encoding/json"
+	"fmt"
 	"recorder/config"
 	"recorder/internal/structure"
 	"recorder/pkg/logger"
@@ -24,11 +25,12 @@ func Start_consumer() {
 	}
 	for msg := range queue {
 		var data structure.Result_message
+		fmt.Println(string(msg.Body[:]))
 		err := json.Unmarshal(msg.Body, &data)
 		if err != nil {
 			logger.Error(err.Error())
 		} else {
-			logger.Info("Received from AI: " + data.Hostname + " " + data.Coords)
+			logger.Info("Received from AI: " + data.Hostname)
 		}
 	}
 }
