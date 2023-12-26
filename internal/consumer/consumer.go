@@ -7,7 +7,9 @@ import (
 	"recorder/internal/structure"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb"
+	dut_query "recorder/pkg/mariadb/dut"
 	"recorder/pkg/rabbitmq"
+	"recorder/pkg/redis"
 )
 
 func Start_consumer() {
@@ -19,6 +21,7 @@ func Start_consumer() {
 		return
 	}
 	rabbitmq.Rabbit_init()
+	redis.Redis_init()
 	queue, err := rabbitmq.Consume("result_queue")
 	if err != nil {
 		logger.Error(err.Error())
@@ -30,6 +33,7 @@ func Start_consumer() {
 		if err != nil {
 			logger.Error(err.Error())
 		} else {
+			dut_query.Update_AI_result(data.Hostname, data.Label, data.Coords)
 			logger.Info("Received from AI: " + data.Hostname)
 		}
 	}
