@@ -16,6 +16,7 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	"recorder/pkg/rabbitmq"
 	"strconv"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -208,6 +209,7 @@ func ssim_cal(image1 string, image2 string) (ssim float64) {
 func Send_to_rabbitMQ(hostname string, path string, expire_time string) (err error) {
 	var message Message
 	message.Hostname = hostname
+	time.Sleep(100 * time.Millisecond)
 	imageFile, err := os.Open(path)
 	if err != nil {
 		return err
