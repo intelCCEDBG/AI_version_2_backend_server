@@ -22,8 +22,15 @@ type Result_message struct {
 }
 type DUT struct {
 	Machine_name string
-	Ssim         int
+	Ssim         float64
 	Cycle_cnt    int
 	Status       string
 	Threshhold   int
+}
+
+// Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
+type AI_result struct {
+	Hostname string    `json:"hostname"`
+	Label    int64     `json:"label"`
+	Coords   []float64 `json:"coords"`
 }
