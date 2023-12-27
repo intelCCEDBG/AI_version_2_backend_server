@@ -33,6 +33,7 @@ func Start_service() {
 	go monitor_error_signal()
 	go monitor_stop_abnormal_signal()
 	go ai.Start_ai_monitoring(ctx)
+	go ai.FS_monitor_slow(ctx)
 	Quit := make(chan os.Signal, 1)
 	signal.Notify(Quit, syscall.SIGINT, syscall.SIGTERM)
 	<-Quit
