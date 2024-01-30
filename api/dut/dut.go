@@ -2,31 +2,32 @@ package dut_api
 
 import (
 	"net/http"
-	"github.com/gin-gonic/gin"
-	"recorder/pkg/mariadb/method"
-	"recorder/pkg/logger"
 	apiservice "recorder/pkg/apiservice"
+	"recorder/pkg/logger"
+	dut_query "recorder/pkg/mariadb/dut"
+	"recorder/pkg/mariadb/method"
 
+	"github.com/gin-gonic/gin"
 )
 
 type Dutlist_Response struct {
-	Machine_name		[]string	`json:"machines"`
+	Machine_name []string `json:"machines"`
 }
 
-type Dut struct{
-	Machine_name		string	`json:"machine"`
-	Ssim 				int		`json:"ssim"`
-	Status				int		`json:"status"`
-	Cycle_cnt			int		`json:"cycle_cnt"`
-	Error_timestamp 	string	`json:"error_timestamp"`
-	Path           		string	`json:"path"`
-	Threshold			int		`json:"threshold"`
+type Dut struct {
+	Machine_name    string `json:"machine"`
+	Ssim            int    `json:"ssim"`
+	Status          int    `json:"status"`
+	Cycle_cnt       int    `json:"cycle_cnt"`
+	Error_timestamp string `json:"error_timestamp"`
+	Path            string `json:"path"`
+	Threshold       int    `json:"threshold"`
 }
 
 func Dut_list(c *gin.Context) {
 	extra := c.Query("extra")
 	var Dut_list Dutlist_Response
-	if extra == "empty"{
+	if extra == "empty" {
 		rows, err := method.Query("SELECT machine_name FROM machine WHERE NOT EXISTS(SELECT 1 FROM debug_unit WHERE machine.machine_name=debug_unit.machine_name);")
 		if err != nil {
 			logger.Error("Query empty dut list error: " + err.Error())
@@ -34,9 +35,9 @@ func Dut_list(c *gin.Context) {
 		for rows.Next() {
 			var tmp string
 			err = rows.Scan(&tmp)
-			Dut_list.Machine_name = append(Dut_list.Machine_name,tmp)
+			Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
 		}
-	}else{
+	} else {
 		rows, err := method.Query("SELECT machine_name FROM machine")
 		if err != nil {
 			logger.Error("Query dut list error: " + err.Error())
@@ -44,8 +45,8 @@ func Dut_list(c *gin.Context) {
 		for rows.Next() {
 			var tmp string
 			err = rows.Scan(&tmp)
-			Dut_list.Machine_name = append(Dut_list.Machine_name,tmp)
-		}		
+			Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+		}
 	}
 
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
@@ -70,7 +71,7 @@ func Dut_all_info(c *gin.Context) {
 
 func Dut_info(c *gin.Context) {
 	machine := c.Query("machine")
-	rows := method.QueryRow("SELECT * FROM machine WHERE machine_name=?",machine)
+	rows := method.QueryRow("SELECT * FROM machine WHERE machine_name=?", machine)
 	var tmp Dut
 	err := rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path, &tmp.Threshold)
 	if err != nil {
@@ -102,7 +103,12 @@ func Dut_modify(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
+func Lock_coord(c *gin.Context) {
+	machine_name := c.Query("machine")
+	result := dut_query.Get_AI_result(machine_name)
+	dut_query.Update_lock_coord(machine_name, result.Coords)
 
+}
 func Dut_status(c *gin.Context) {
 	hostname := c.Query("hostname")
 	status := c.Query("status")

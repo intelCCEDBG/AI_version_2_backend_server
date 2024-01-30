@@ -67,13 +67,19 @@ func Update_dut_cnt(machine_name string, cnt int) {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
+func Update_lock_coord(machine_name string, coord string) {
+	_, err := method.Exec("UPDATE machine SET lock_coord = ? WHERE machine_name = ?", coord, machine_name)
+	if err != nil {
+		logger.Error("Update DUT status error: " + err.Error())
+	}
+}
 func Get_dut_status(machine_name string) (dut_template structure.DUT) {
-	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,status,threshhold FROM machine where machine_name = " + "'" + machine_name + "'")
+	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,status,threshhold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}
 	for KVM.Next() {
-		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Status, &dut_template.Threshhold)
+		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Status, &dut_template.Threshhold, &dut_template.Lock_coord)
 		if err != nil {
 			logger.Error(err.Error())
 			return

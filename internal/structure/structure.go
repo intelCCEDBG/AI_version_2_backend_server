@@ -26,6 +26,7 @@ type DUT struct {
 	Cycle_cnt    int
 	Status       string
 	Threshhold   int
+	Lock_coord   string
 }
 
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
@@ -34,3 +35,5 @@ type AI_result struct {
 	Label    int64     `json:"label"`
 	Coords   []float64 `json:"coords"`
 }
+
+func Coord_f2s(coord []f)
