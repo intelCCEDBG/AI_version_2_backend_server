@@ -16,6 +16,7 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	"recorder/pkg/rabbitmq"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -41,41 +42,29 @@ func Start_ai_monitoring(ctx context.Context) {
 
 }
 
-//	func FS_monitor(hostname string, ctx context.Context) {
-//		directory := "/home/media/image/" + hostname
-//		watcher, err := fsnotify.NewWatcher()
-//		if err != nil {
-//			logger.Error(err.Error())
-//		}
-//		defer watcher.Close()
-//		err = watcher.Add(directory)
-//		if err != nil {
-//			logger.Error(err.Error())
-//		}
-//			for {
-//				select {
-//				case event, ok := <-watcher.Events:
-//					if !ok {
-//						return
-//					}
-//					if event.Op&fsnotify.Write == fsnotify.Write {
-//						filename := filepath.Base(event.Name)
-//						logger.Info("modified file:" + filename)
-//						if filename == hostname+".png" {
-//							err = Send_to_rabbitMQ(hostname)
-//							if err != nil {
-//								logger.Error(err.Error())
-//							}
-//						}
-//					}
-//				case err, ok := <-watcher.Errors:
-//					if !ok {
-//						return
-//					}
-//					logger.Error(err.Error())
-//				}
-//			}
-//		}
+var (
+	mutex       sync.Mutex
+	debounceMap = make(map[string]time.Time)
+)
+
+func debounceEvent(eventName string, duration time.Duration, action func()) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if _, ok := debounceMap[eventName]; !ok {
+		debounceMap[eventName] = time.Now()
+		go func() {
+			time.Sleep(duration)
+			mutex.Lock()
+			delete(debounceMap, eventName)
+			mutex.Unlock()
+			action()
+		}()
+	} else {
+		debounceMap[eventName] = time.Now()
+	}
+}
+
 func FS_monitor_ramdisk(ctx context.Context) {
 	ramdisk_path := config.Viper.GetString("ramdisk_path")
 	watcher, err := fsnotify.NewWatcher()
@@ -100,7 +89,9 @@ func FS_monitor_ramdisk(ctx context.Context) {
 				filename := filepath.Base(event.Name)
 				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
-				go Send_to_rabbitMQ(hostname, ramdisk_path+filename, "2000")
+				debounceEvent(hostname, 500*time.Millisecond, func() {
+					Send_to_rabbitMQ(hostname, ramdisk_path+filename, "2000")
+				})
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -210,6 +201,7 @@ func Send_to_rabbitMQ(hostname string, path string, expire_time string) (err err
 	var message Message
 	message.Hostname = hostname
 	time.Sleep(100 * time.Millisecond)
+	logger.Info(path)
 	imageFile, err := os.Open(path)
 	if err != nil {
 		return err
