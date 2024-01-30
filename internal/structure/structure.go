@@ -1,5 +1,11 @@
 package structure
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 type Kvm struct {
 	Hostname          string
 	Stream_url        string
@@ -36,4 +42,27 @@ type AI_result struct {
 	Coords   []float64 `json:"coords"`
 }
 
-func Coord_f2s(coord []f)
+func Coord_f2s(coord []float64) string {
+	var coord_str string
+	for i := 0; i < len(coord); i++ {
+		coord_str += fmt.Sprintf("%f", coord[i])
+		if i != len(coord)-1 {
+			coord_str += ","
+		}
+	}
+	return coord_str
+}
+func Coord_s2f(coord string) []float64 {
+	var coord_f []float64
+	values := strings.Split(coord, ",")
+	for _, value := range values {
+		// Convert the string to a float64
+		floatValue, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			fmt.Println("Error converting string to float:", err)
+			return coord_f
+		}
+		coord_f = append(coord_f, floatValue)
+	}
+	return coord_f
+}

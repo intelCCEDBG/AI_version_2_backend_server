@@ -52,7 +52,8 @@ func Start_backend() {
 	router.GET("/api/dut/search", dut_api.Dut_search)
 	router.GET("/api/dut/modify", dut_api.Dut_modify)
 	router.GET("/api/dut/status", dut_api.Dut_status)
-
+	router.GET("/api/dut/lockframe", dut_api.Dut_lock_coord)
+	router.GET("/api/dut/unlockframe", dut_api.Dut_unlock_coord)
 
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)

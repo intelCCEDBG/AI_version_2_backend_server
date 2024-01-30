@@ -2,6 +2,7 @@ package dut_api
 
 import (
 	"net/http"
+	"recorder/internal/structure"
 	apiservice "recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
@@ -103,11 +104,15 @@ func Dut_modify(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Lock_coord(c *gin.Context) {
+func Dut_lock_coord(c *gin.Context) {
 	machine_name := c.Query("machine")
 	result := dut_query.Get_AI_result(machine_name)
-	dut_query.Update_lock_coord(machine_name, result.Coords)
-
+	coord_str := structure.Coord_f2s(result.Coords)
+	dut_query.Update_lock_coord(machine_name, coord_str)
+}
+func Dut_unlock_coord(c *gin.Context) {
+	machine_name := c.Query("machine")
+	dut_query.Update_lock_coord(machine_name, "")
 }
 func Dut_status(c *gin.Context) {
 	hostname := c.Query("hostname")
