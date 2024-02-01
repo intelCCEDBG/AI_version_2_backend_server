@@ -14,7 +14,10 @@ import (
 type Dutlist_Response struct {
 	Machine_name []string `json:"machines"`
 }
-
+type Lock_Response struct {
+	Locked int       `json:"locked"`
+	Coord  []float64 `json:"coord"`
+}
 type Dut struct {
 	Machine_name    string `json:"machine"`
 	Ssim            int    `json:"ssim"`
@@ -108,11 +111,24 @@ func Dut_lock_coord(c *gin.Context) {
 	machine_name := c.Query("machine")
 	result := dut_query.Get_AI_result(machine_name)
 	coord_str := structure.Coord_f2s(result.Coords)
+	logger.Debug(coord_str)
 	dut_query.Update_lock_coord(machine_name, coord_str)
 }
 func Dut_unlock_coord(c *gin.Context) {
 	machine_name := c.Query("machine")
 	dut_query.Update_lock_coord(machine_name, "")
+}
+func Dut_islocked(c *gin.Context) {
+	machine_name := c.Query("machine")
+	dut := dut_query.Get_dut_status(machine_name)
+	var tmp Lock_Response
+	if dut.Lock_coord == "" {
+		tmp.Locked = 0
+	} else {
+		tmp.Locked = 1
+		tmp.Coord = structure.Coord_s2f(dut.Lock_coord)
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 func Dut_status(c *gin.Context) {
 	hostname := c.Query("hostname")

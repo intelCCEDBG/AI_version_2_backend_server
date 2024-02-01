@@ -21,13 +21,13 @@ func Update_AI_result(machine_name string, status int64, coords []float64) {
 		coords_str += ","
 	}
 	cur_time := time.Now()
-	_, err := method.Exec("INSERT INTO ai_result (machine, status, coords, time) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), coords = VALUES(coords),time = VALUES(time);", machine_name, status, coords_str, cur_time)
+	_, err := method.Exec("INSERT INTO ai_result (machine_name, status, coords, time) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), coords = VALUES(coords),time = VALUES(time);", machine_name, status, coords_str, cur_time)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
 	}
 }
 func Get_AI_result(machine_name string) (result structure.AI_result) {
-	Result, err := method.Query("SELECT status, coords FROM ai_result WHERE machine = ?", machine_name)
+	Result, err := method.Query("SELECT status, coords FROM ai_result WHERE machine_name = ?", machine_name)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
 	}
@@ -50,15 +50,7 @@ func Get_AI_result(machine_name string) (result structure.AI_result) {
 	var ai_result structure.AI_result
 	ai_result.Hostname = machine_name
 	ai_result.Label = status
-	coords := []float64{}
-	for i := 0; i < len(coords_str); i++ {
-		if coords_str[i] == ',' {
-			coords = append(coords, 0)
-		} else {
-			coords[len(coords)-1] = coords[len(coords)-1]*10 + float64(coords_str[i]-'0')
-		}
-	}
-	ai_result.Coords = coords
+	ai_result.Coords = structure.Coord_s2f(coords_str)
 	return ai_result
 }
 func Update_dut_cnt(machine_name string, cnt int) {
@@ -74,7 +66,7 @@ func Update_lock_coord(machine_name string, coord string) {
 	}
 }
 func Get_dut_status(machine_name string) (dut_template structure.DUT) {
-	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,status,threshhold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
+	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,status,threshold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}

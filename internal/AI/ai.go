@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"recorder/config"
 	"recorder/internal/cropping"
+	"recorder/internal/structure"
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
+	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/rabbitmq"
 	"strconv"
 	"sync"
@@ -25,8 +27,11 @@ import (
 var AI_list []string
 
 type Message struct {
-	Hostname string `json:"hostname"`
-	Image    string `json:"image"`
+	Hostname     string    `json:"hostname"`
+	Machine_name string    `json:"machine_name"`
+	Image        string    `json:"image"`
+	Coord        []float64 `json:"coord"`
+	Locked       int       `json:"locked"`
 	// Path     string `json:"path"`
 }
 
@@ -89,8 +94,10 @@ func FS_monitor_ramdisk(ctx context.Context) {
 				filename := filepath.Base(event.Name)
 				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
+				unit := unit_query.Get_unitbyhostname(hostname)
+				sta := dut_query.Get_dut_status(unit.Machine_name)
 				debounceEvent(hostname, 500*time.Millisecond, func() {
-					Send_to_rabbitMQ(hostname, ramdisk_path+filename, "2000")
+					Send_to_rabbitMQ(unit.Hostname, unit.Machine_name, sta.Lock_coord, ramdisk_path+filename, "2000")
 				})
 			}
 		case err, ok := <-watcher.Errors:
@@ -197,9 +204,15 @@ func ssim_cal(image1 string, image2 string) (ssim float64) {
 	}
 	return ssim
 }
-func Send_to_rabbitMQ(hostname string, path string, expire_time string) (err error) {
+func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path string, expire_time string) (err error) {
 	var message Message
 	message.Hostname = hostname
+	message.Machine_name = machine_name
+	message.Locked = 0
+	if locked != "" {
+		message.Locked = 1
+		message.Coord = structure.Coord_s2f(locked)
+	}
 	time.Sleep(100 * time.Millisecond)
 	logger.Info(path)
 	imageFile, err := os.Open(path)

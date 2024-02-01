@@ -34,6 +34,12 @@ type DUT struct {
 	Threshhold   int
 	Lock_coord   string
 }
+type Unit struct {
+	Hostname     string
+	Ip           string
+	Machine_name string
+	Project      string
+}
 
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
 type AI_result struct {
