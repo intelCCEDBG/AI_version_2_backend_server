@@ -175,14 +175,18 @@ func Process_AI_result(hostname string) {
 		} else {
 			dut_query.Update_dut_cnt(hostname, 0)
 		}
-		if dut_info.Cycle_cnt >= dut_info.Threshhold {
-			dut_query.Update_dut_status(hostname, 4)
+		if dut_info.Cycle_cnt == dut_info.Threshhold {
+			// dut_query.Update_dut_status(hostname, 4)
+			freeze_process()
 		}
 		logger.Info("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	}
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
 	}
+
+}
+func freeze_process() {
 
 }
 func ssim_cal(image1 string, image2 string) (ssim float64) {
