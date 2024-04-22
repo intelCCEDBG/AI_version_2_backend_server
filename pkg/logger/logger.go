@@ -20,7 +20,7 @@ func InitLogger(path string) {
 	fileWriteSyncer := zapcore.AddSync(file)
 
 	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel), // you can change the output level here
+		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel), // you can change the output level here
 		zapcore.NewCore(encoder, fileWriteSyncer, zapcore.DebugLevel),
 	)
 	Log = zap.New(core)

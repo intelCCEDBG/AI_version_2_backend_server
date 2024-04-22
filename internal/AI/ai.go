@@ -70,7 +70,7 @@ func Process_AI_result(hostname string, machine_name string) {
 			return
 		}
 		ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
-		logger.Debug("SSIM result from " + hostname + ": " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
+		// logger.Debug("SSIM result from " + hostname + ": " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -85,7 +85,7 @@ func Process_AI_result(hostname string, machine_name string) {
 			// dut_query.Update_dut_status(hostname, 4)
 			freeze_process()
 		}
-		logger.Info("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
+		logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	}
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
