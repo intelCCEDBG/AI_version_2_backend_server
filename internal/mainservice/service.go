@@ -43,7 +43,7 @@ func Start_service() {
 	select {
 	case <-Connection_close:
 		logger.Info("Connection closed")
-	case <-time.After(5 * time.Second):
+	case <-time.After(20 * time.Second):
 		logger.Info("Connection close fail, force shutdown after 5 seconds")
 	}
 	fmt.Println("Server shutdown complete.")
@@ -103,7 +103,7 @@ func monitor_start_signal() {
 }
 func servershutdown(Connection_close chan int) {
 	stop_recording_all()
-	time.Sleep(3 * time.Second)
+	time.Sleep(10 * time.Second)
 	Connection_close <- 1
 }
 func get_recording_kvm_back() {

@@ -55,7 +55,23 @@ func Dut_list(c *gin.Context) {
 
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
 }
-
+func Dut_freelist(c *gin.Context) {
+	var Dut_list Dutlist_Response
+	rows, err := method.Query("SELECT A.machine_name FROM machine A LEFT JOIN debug_unit C ON A.machine_name = C.machine_name WHERE C.machine_name IS NULL;")
+	if err != nil {
+		logger.Error("Query empty dut list error: " + err.Error())
+	}
+	for rows.Next() {
+		var tmp string
+		err = rows.Scan(&tmp)
+		Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+	}
+	if Dut_list.Machine_name == nil {
+		tmp := []string{}
+		Dut_list.Machine_name = tmp
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+}
 func Dut_all_info(c *gin.Context) {
 	var Dut_info_list []Dut
 	rows, err := method.Query("SELECT * FROM machine;")

@@ -60,15 +60,32 @@ func Coord_f2s(coord []float64) string {
 }
 func Coord_s2f(coord string) []float64 {
 	var coord_f []float64
+	if coord == "" {
+		return coord_f
+	}
 	values := strings.Split(coord, ",")
 	for _, value := range values {
 		// Convert the string to a float64
 		floatValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			fmt.Println("Error converting string to float:", err)
+			fmt.Println("Error converting string to float:", coord)
 			return coord_f
 		}
 		coord_f = append(coord_f, floatValue)
 	}
 	return coord_f
+}
+
+type Project_setting_Tamplate struct {
+	Project_name string `json:"project_name"`
+	Short_name   string `json:"short_name"`
+	// Host         []string         `json:"host"`
+	Owner      string           `json:"owner"`
+	Email_list []Email_tamplate `json:"Email_list"`
+}
+
+type Email_tamplate struct {
+	Account string `json:"account"`
+	Report  bool   `json:"report"`
+	Alert   bool   `json:"alert"`
 }

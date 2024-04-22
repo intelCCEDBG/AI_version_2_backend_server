@@ -22,6 +22,7 @@ func init() {
 func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	hostname := mh.Hostname
 	url := mh.Stream_url
+	// unit := unit_query.Get_unitbyhostname(hostname)
 	// query.Update_kvm_status(hostname, "recording")
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
 	image_path := config.Viper.GetString("IMAGE_PATH") + hostname + "/"

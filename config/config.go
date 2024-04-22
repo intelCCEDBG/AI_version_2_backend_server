@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
+
 	"github.com/spf13/viper"
 )
 
@@ -27,4 +29,16 @@ func LoadConfig() *viper.Viper {
 		fmt.Println("Error loading config file:", err)
 		return nil
 	}
+}
+
+func Find_suffix(target string) []string {
+	var ans []string
+	for _, key := range Viper.AllKeys() {
+		if strings.HasSuffix(strings.ToUpper(key), target) {
+			value := Viper.GetString(key)
+			ans = append(ans, value)
+			fmt.Printf("%s=%s\n", key, value)
+		}
+	}
+	return ans
 }

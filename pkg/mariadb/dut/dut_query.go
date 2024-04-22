@@ -18,7 +18,9 @@ func Update_AI_result(machine_name string, status int64, coords []float64) {
 	coords_str := ""
 	for i := 0; i < len(coords); i++ {
 		coords_str += strconv.FormatFloat(coords[i], 'f', 6, 64)
-		coords_str += ","
+		if i != len(coords)-1 {
+			coords_str += ","
+		}
 	}
 	cur_time := time.Now()
 	_, err := method.Exec("INSERT INTO ai_result (machine_name, status, coords, time) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), coords = VALUES(coords),time = VALUES(time);", machine_name, status, coords_str, cur_time)

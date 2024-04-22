@@ -26,6 +26,7 @@ import (
 	"recorder/config"
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
+	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/mariadb/method"
 	"recorder/pkg/redis"
 )
@@ -78,6 +79,25 @@ type Kvm_state struct {
 type Proj_exec struct {
 	Project   string `json:"project"`
 	Operation string `json:"operation`
+}
+
+type KVM_floor struct {
+	Floor  []string `json:"floor"`
+	Amount []int    `json:"amount"`
+}
+
+type Hostnames struct {
+	Hostnames    []string `json:"hostnames"`
+	Islinked     []bool   `json:"islinked"`
+	Messagecount []int    `json:"messagecount"`
+}
+type Message struct {
+	Hostname string `json:"hostname"`
+	Message  string `json:"message"`
+}
+type Messages struct {
+	Hostname string   `json:"hostname"`
+	Messages []string `json:"message"`
 }
 
 func Kvm_list(c *gin.Context) {
@@ -147,7 +167,7 @@ func Kvm_search(c *gin.Context) {
 }
 
 func Kvm_mapping(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Read kvm mapping request error: " + err.Error())
 	}
@@ -190,7 +210,7 @@ func Kvm_mapping(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusForbidden, "")
 		return
 	}
-	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name) VALUES (?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.Machine_name)
+	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name, project) VALUES (?, ?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.Machine_name, Req.Project)
 	if err != nil {
 		logger.Error("insert kvm mapping error: " + err.Error())
 	}
@@ -447,6 +467,33 @@ func Dbgunit_csv2db() {
 			}
 
 		}
+	}
+	Project_list := make(map[string]bool)
+	rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
+	if err != nil {
+		logger.Error("Query project list error: " + err.Error())
+	}
+	for rows.Next() {
+		var tmp string
+		err = rows.Scan(&tmp)
+		Project_list[tmp] = true
+	}
+	rows, err = method.Query("SELECT project_name FROM project;")
+	if err != nil {
+		logger.Error("Query project list error: " + err.Error())
+	}
+	for rows.Next() {
+		var tmp string
+		err = rows.Scan(&tmp)
+		if _, exists := Project_list[tmp]; !exists {
+			create_new_project(tmp)
+		}
+	}
+}
+func create_new_project(project_name string) {
+	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?);", project_name, project_name[:4], "", "", 0, "open")
+	if err != nil {
+		logger.Error("INSERT project list error: " + err.Error())
 	}
 }
 func createMappingList(data [][]string) []Mapping_file {
@@ -733,7 +780,6 @@ func Project_status(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-
 func Kvm_modify(c *gin.Context) {
 	hostname := c.Query("hostname")
 	ip := c.Query("ip")
@@ -745,5 +791,47 @@ func Kvm_modify(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
 		return
 	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func Get_KVM_Floor(c *gin.Context) {
+	var Floor_out KVM_floor
+	Floor_map := kvm_query.Get_all_Floor_from_hostname()
+	for floor := range Floor_map {
+		Floor_out.Floor = append(Floor_out.Floor, floor)
+		Floor_out.Amount = append(Floor_out.Amount, Floor_map[floor])
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Floor_out)
+}
+func Get_hostnames_by_floor(c *gin.Context) {
+	var Hostnames_out Hostnames
+	floor := c.Query("floor")
+	Hostnames_out.Hostnames = kvm_query.Get_hostnames_by_floor(floor)
+	Hostnames_out.Islinked = kvm_query.Get_link_status(Hostnames_out.Hostnames)
+	Hostnames_out.Messagecount = kvm_query.Get_messagecount(Hostnames_out.Hostnames)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Hostnames_out)
+}
+func Insert_message(c *gin.Context) {
+	body, _ := io.ReadAll(c.Request.Body)
+	var Req Message
+	_ = json.Unmarshal(body, &Req)
+	kvm_query.Insert_message(Req.Hostname, Req.Message)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func Get_kvm_message(c *gin.Context) {
+	var Messages_out Messages
+	hostname := c.Query("hostname")
+	Messages_out.Hostname = hostname
+	Messages_out.Messages = kvm_query.Get_kvm_message(hostname)
+	if Messages_out.Messages == nil {
+		empty := []string{}
+		Messages_out.Messages = empty
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Messages_out)
+}
+func Delete_message(c *gin.Context) {
+	body, _ := io.ReadAll(c.Request.Body)
+	var Req Message
+	_ = json.Unmarshal(body, &Req)
+	kvm_query.Delete_message(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }

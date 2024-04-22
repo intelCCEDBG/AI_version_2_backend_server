@@ -10,6 +10,7 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	"recorder/pkg/rabbitmq"
 	"recorder/pkg/redis"
+	"time"
 )
 
 func Start_consumer() {
@@ -23,8 +24,11 @@ func Start_consumer() {
 	rabbitmq.Rabbit_init()
 	redis.Redis_init()
 	queue, err := rabbitmq.Consume("result_queue")
-	if err != nil {
+	for err != nil {
 		logger.Error(err.Error())
+		println("Waiting 5 seconds to reconnect...")
+		time.Sleep(5 * time.Second)
+		queue, err = rabbitmq.Consume("result_queue")
 	}
 	for msg := range queue {
 		var data structure.Result_message

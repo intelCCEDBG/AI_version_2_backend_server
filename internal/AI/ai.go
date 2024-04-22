@@ -1,27 +1,21 @@
 package ai
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"recorder/config"
 	"recorder/internal/cropping"
+	"recorder/internal/ssim"
 	"recorder/internal/structure"
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
-	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/rabbitmq"
 	"strconv"
-	"sync"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 var AI_list []string
@@ -47,136 +41,47 @@ func Start_ai_monitoring(ctx context.Context) {
 
 }
 
-var (
-	mutex       sync.Mutex
-	debounceMap = make(map[string]time.Time)
-)
-
-func debounceEvent(eventName string, duration time.Duration, action func()) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	if _, ok := debounceMap[eventName]; !ok {
-		debounceMap[eventName] = time.Now()
-		go func() {
-			time.Sleep(duration)
-			mutex.Lock()
-			delete(debounceMap, eventName)
-			mutex.Unlock()
-			action()
-		}()
-	} else {
-		debounceMap[eventName] = time.Now()
-	}
-}
-
-func FS_monitor_ramdisk(ctx context.Context) {
-	ramdisk_path := config.Viper.GetString("ramdisk_path")
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	defer watcher.Close()
-
-	err = watcher.Add(ramdisk_path)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-
-	for {
-		select {
-		case event, ok := <-watcher.Events:
-			// logger.Info("Get event!")
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				filename := filepath.Base(event.Name)
-				// logger.Info("modified file:" + filename)
-				hostname := filename[:len(filename)-4]
-				unit := unit_query.Get_unitbyhostname(hostname)
-				sta := dut_query.Get_dut_status(unit.Machine_name)
-				debounceEvent(hostname, 500*time.Millisecond, func() {
-					Send_to_rabbitMQ(unit.Hostname, unit.Machine_name, sta.Lock_coord, ramdisk_path+filename, "2000")
-				})
-			}
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return
-			}
-			logger.Error(err.Error())
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-func FS_monitor_slow(ctx context.Context) {
-	ramdisk_path := config.Viper.GetString("ramdisk_slow_path")
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	defer watcher.Close()
-
-	err = watcher.Add(ramdisk_path)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-
-	for {
-		select {
-		case event, ok := <-watcher.Events:
-			// logger.Info("Get event!")
-			if !ok {
-				return
-			}
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				filename := filepath.Base(event.Name)
-				// logger.Info("modified file:" + filename)
-				hostname := filename[:len(filename)-4]
-				go Process_AI_result(hostname)
-			}
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				return
-			}
-			logger.Error(err.Error())
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-func Process_AI_result(hostname string) {
-	Ai_result := dut_query.Get_AI_result(hostname)
+func Process_AI_result(hostname string, machine_name string) {
+	// unit := unit_query.Get_unitbyhostname(hostname)
+	// sta := dut_query.Get_dut_status(unit.Machine_name)
+	Ai_result := dut_query.Get_AI_result(machine_name)
 	if Ai_result.Hostname == "null" {
-		logger.Error("Machine " + hostname + " not found in database")
+		logger.Error("Machine " + machine_name + " not found in database")
 		return
 	}
-	slow_path := config.Viper.GetString("ramdisk_slow_path")
-	cropping.Switch_picture_if_exist(slow_path + "/cropped/" + hostname + "_cropped.png")
+	if len(Ai_result.Coords) == 0 {
+		return
+	}
+	slow_path := config.Viper.GetString("slow_path")
+	cropped_path := config.Viper.GetString("cropped_path")
+	cropping.Switch_picture_if_exist(cropped_path + hostname + "_cropped.png")
 	if Ai_result.Label == 0 {
-		err := cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, slow_path+"/cropped/"+hostname+"_cropped.png")
+		err := cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, cropped_path+hostname+"_cropped.png")
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		dut_query.Update_dut_status(hostname, 0)
-		dut_query.Update_dut_cnt(hostname, 0)
+		dut_query.Update_dut_status(machine_name, 0)
+		dut_query.Update_dut_cnt(machine_name, 0)
 	} else {
-		dut_info := dut_query.Get_dut_status(hostname)
-		cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, slow_path+"/cropped/"+hostname+"_cropped.png")
+		dut_info := dut_query.Get_dut_status(machine_name)
+		cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, cropped_path+hostname+"_cropped.png")
 		//todo: if old file not exist
-		if !fileoperation.FileExists(slow_path + "/cropped/" + hostname + "_cropped_old.png") {
+		if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
 			return
 		}
-		ssim_result := ssim_cal(slow_path+"/cropped/"+hostname+"_cropped.png", slow_path+"/cropped/"+hostname+"_cropped_old.png")
+		ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
+		if err != nil {
+			logger.Error(err.Error())
+			return
+		}
 		if ssim_result < dut_info.Ssim {
-			dut_query.Update_dut_cnt(hostname, dut_info.Cycle_cnt+1)
+			dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
 			dut_info.Cycle_cnt++
 		} else {
-			dut_query.Update_dut_cnt(hostname, 0)
+			dut_query.Update_dut_cnt(machine_name, 0)
 		}
 		if dut_info.Cycle_cnt >= dut_info.Threshhold {
-			dut_query.Update_dut_status(hostname, 4)
+			dut_query.Update_dut_status(machine_name, 4)
 		}
 		logger.Info("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	}
@@ -185,25 +90,7 @@ func Process_AI_result(hostname string) {
 	}
 
 }
-func ssim_cal(image1 string, image2 string) (ssim float64) {
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-i", image1, "-i", image2, "-lavfi", "ssim", "-f", "null", "-")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	cmd.Start()
-	buf := bufio.NewReader(stdout)
-	line, _, err := buf.ReadLine()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	ssim_str := string(line[len(line)-6:])
-	ssim, err = strconv.ParseFloat(ssim_str, 64)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	return ssim
-}
+
 func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path string, expire_time string) (err error) {
 	var message Message
 	message.Hostname = hostname
@@ -214,7 +101,7 @@ func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path 
 		message.Coord = structure.Coord_s2f(locked)
 	}
 	time.Sleep(100 * time.Millisecond)
-	logger.Info(path)
+	// logger.Info(path)
 	imageFile, err := os.Open(path)
 	if err != nil {
 		return err
