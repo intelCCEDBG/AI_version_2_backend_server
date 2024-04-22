@@ -93,3 +93,13 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	}
 	ch <- hostname
 }
+
+func Get_picture_from_video(ts string, frame_index string, image_path string) error {
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", ts, "-vf", "select='eq(n\\,"+frame_index+")'", "-vsync", "vfr", image_path)
+	// logger.Info(cmd.String())
+	err := cmd.Run()
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	return err
+}
