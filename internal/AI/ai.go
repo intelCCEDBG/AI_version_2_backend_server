@@ -70,24 +70,20 @@ func Process_AI_result(hostname string, machine_name string) {
 			return
 		}
 		ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
+		logger.Debug("SSIM result from " + hostname + ": " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 		if err != nil {
 			logger.Error(err.Error())
 			return
 		}
-		if ssim_result < dut_info.Ssim {
+		if ssim_result >= dut_info.Ssim {
 			dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
 			dut_info.Cycle_cnt++
 		} else {
 			dut_query.Update_dut_cnt(machine_name, 0)
 		}
-<<<<<<< HEAD
-		if dut_info.Cycle_cnt >= dut_info.Threshhold {
-			dut_query.Update_dut_status(machine_name, 4)
-=======
 		if dut_info.Cycle_cnt == dut_info.Threshhold {
 			// dut_query.Update_dut_status(hostname, 4)
 			freeze_process()
->>>>>>> log_image_test
 		}
 		logger.Info("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	}
@@ -96,32 +92,9 @@ func Process_AI_result(hostname string, machine_name string) {
 	}
 
 }
-<<<<<<< HEAD
-
-=======
 func freeze_process() {
 
 }
-func ssim_cal(image1 string, image2 string) (ssim float64) {
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-i", image1, "-i", image2, "-lavfi", "ssim", "-f", "null", "-")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	cmd.Start()
-	buf := bufio.NewReader(stdout)
-	line, _, err := buf.ReadLine()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	ssim_str := string(line[len(line)-6:])
-	ssim, err = strconv.ParseFloat(ssim_str, 64)
-	if err != nil {
-		logger.Error(err.Error())
-	}
-	return ssim
-}
->>>>>>> log_image_test
 func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path string, expire_time string) (err error) {
 	var message Message
 	message.Hostname = hostname
