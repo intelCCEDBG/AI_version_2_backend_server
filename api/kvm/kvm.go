@@ -3,7 +3,6 @@ package kvm_api
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"sync"
 
 	"crypto/tls"
@@ -15,7 +14,6 @@ import (
 	"os"
 
 	"strconv"
-	"strings"
 	"time"
 
 	"golang.org/x/exp/slices"
@@ -24,6 +22,7 @@ import (
 	"github.com/google/uuid"
 
 	"recorder/config"
+	videogen "recorder/internal/video_gen"
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	kvm_query "recorder/pkg/mariadb/kvm"
@@ -661,60 +660,9 @@ func Kvm_genvideo(c *gin.Context) {
 	Req.Hour, _ = strconv.Atoi(c.Query("hour"))
 	Req.Duration, _ = strconv.Atoi(c.Query("duration"))
 	Req.Minute, _ = strconv.Atoi(c.Query("minute"))
-	fmt.Println(Req.Duration)
-	fmt.Println(Req.Hostname)
-	files, err := os.ReadDir("/home/media/video/" + Req.Hostname + "/")
-	if err != nil {
-		logger.Error("List video dir fail: " + err.Error())
-	}
-	currentTime := time.Now()
-	today_date_string := currentTime.Format("2006-01-02")
-	yesterday_date_string := currentTime.AddDate(0, 0, -1).Format("2006-01-02")
-	fmt.Println(today_date_string)
-	var filenames []string
-	for _, file := range files {
-		filenames = append(filenames, file.Name())
-	}
-	sort.Strings(filenames)
-	f, err := os.OpenFile("/home/media/video/"+Req.Hostname+"/self-define.m3u8", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 644)
-	if err != nil {
-		logger.Error("open video file fail: " + err.Error())
-		return
-	}
-	defer f.Close()
-	f.WriteString("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-ALLOW-CACHE:YES\n#EXT-X-TARGETDURATION:10\n")
-	var h, m string
-	if Req.Hour < 10 {
-		h = strconv.Itoa(Req.Hour)
-		h = "0" + h
-	} else {
-		h = strconv.Itoa(Req.Hour)
-	}
-	if Req.Minute < 10 {
-		m = strconv.Itoa(Req.Minute)
-		m = "0" + m
-	} else {
-		m = strconv.Itoa(Req.Minute)
-	}
-	reqtime := Req.Hour*100 + Req.Minute
-	ctime := time.Now().Hour()*100 + time.Now().Minute()
-	var datestring string
-	if reqtime > ctime {
-		datestring = today_date_string
-	} else {
-		datestring = yesterday_date_string
-	}
-	fmt.Println(datestring)
-	for ii, filename := range filenames {
-		if strings.Contains(filename, datestring+"_"+h+"-"+m) {
-			for i := 0; i < Req.Duration/10; i++ {
-				f.WriteString("#EXTINF:10.000000,\n")
-				f.WriteString(filenames[ii+i] + "\n")
-			}
-			break
-		}
-	}
-	f.WriteString("#EXT-X-ENDLIST")
+	// fmt.Println(Req.Duration)
+	// fmt.Println(Req.Hostname)
+	videogen.GenerateVideo(Req.Hour, Req.Minute, Req.Duration, Req.Hostname)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 

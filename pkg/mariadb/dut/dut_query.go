@@ -72,11 +72,12 @@ func Get_dut_status(machine_name string) (dut_template structure.DUT) {
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}
+	dut_template.Machine_name = "null"
 	for KVM.Next() {
 		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Status, &dut_template.Threshhold, &dut_template.Lock_coord)
 		if err != nil {
 			logger.Error(err.Error())
-			return
+			return dut_template
 		}
 	}
 	return dut_template

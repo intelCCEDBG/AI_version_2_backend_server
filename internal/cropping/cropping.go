@@ -9,17 +9,17 @@ import (
 	"recorder/pkg/logger"
 )
 
-func Crop_image(inputImagePath string, coordinates []float64, outputImagePath string) error {
+func Crop_image(inputImagePath string, coordinates []float64, outputImagePath string) (image.Image, error) {
 	file, err := os.Open(inputImagePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
 
 	// Decode the input image file
 	img, _, err := image.Decode(file)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Extract bounding box coordinates
@@ -41,17 +41,17 @@ func Crop_image(inputImagePath string, coordinates []float64, outputImagePath st
 	// Create an output file to save the cropped image as a PNG file
 	outputFile, err := os.Create(outputImagePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer outputFile.Close()
 
 	// Encode and save the cropped image to a PNG file
 	err = png.Encode(outputFile, croppedImg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return croppedImg, nil
 }
 func Switch_picture_if_exist(image_with_path string) {
 	_, err := os.Stat(image_with_path)

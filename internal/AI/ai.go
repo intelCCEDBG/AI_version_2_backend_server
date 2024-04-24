@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/png"
 	"io"
 	"os"
 	"recorder/config"
 	"recorder/internal/cropping"
+	"recorder/internal/logpicqueue"
 	"recorder/internal/ssim"
 	"recorder/internal/structure"
 	"recorder/pkg/fileoperation"
@@ -55,22 +58,25 @@ func Process_AI_result(hostname string, machine_name string) {
 	slow_path := config.Viper.GetString("slow_path")
 	cropped_path := config.Viper.GetString("cropped_path")
 	cropping.Switch_picture_if_exist(cropped_path + hostname + "_cropped.png")
+	var cropped_image image.Image
+	var err error
+	cropped_image, err = cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, cropped_path+hostname+"_cropped.png")
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	err = logpicqueue.SendtoLogPicChannel(hostname, cropped_image)
+	if err != nil {
+		logger.Error(err.Error())
+	}
 	if Ai_result.Label == 0 {
-		err := cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, cropped_path+hostname+"_cropped.png")
-		if err != nil {
-			logger.Error(err.Error())
-		}
 		dut_query.Update_dut_status(machine_name, 0)
 		dut_query.Update_dut_cnt(machine_name, 0)
 	} else {
 		dut_info := dut_query.Get_dut_status(machine_name)
-		cropping.Crop_image(slow_path+hostname+".png", Ai_result.Coords, cropped_path+hostname+"_cropped.png")
-		//todo: if old file not exist
 		if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
 			return
 		}
 		ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
-		// logger.Debug("SSIM result from " + hostname + ": " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -83,16 +89,41 @@ func Process_AI_result(hostname string, machine_name string) {
 		}
 		if dut_info.Cycle_cnt == dut_info.Threshhold {
 			// dut_query.Update_dut_status(hostname, 4)
-			freeze_process()
+			freeze_process(machine_name)
 		}
 		logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	}
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
 	}
+}
+func freeze_process(machine_name string) {
+	copyFileFromQueue(machine_name)
 
 }
-func freeze_process() {
+func copyFileFromQueue(machine_name string) {
+	logpicqueue.BlockLogPicChannel(machine_name)
+	defer logpicqueue.UnblockLogPicChannel(machine_name)
+	var index = 0
+	for {
+		image := logpicqueue.GetChannelContent(machine_name)
+		if image == nil {
+			break
+		}
+		fileoperation.CreateFolderifNotExist(config.Viper.GetString("logimage_path") + machine_name)
+		outputImagePath := config.Viper.GetString("logimage_path") + machine_name + "/" + strconv.Itoa(index) + ".png"
+		outputFile, err := os.Create(outputImagePath)
+		if err != nil {
+			logger.Error(err.Error())
+			return
+		}
+		err = png.Encode(outputFile, image)
+		if err != nil {
+			logger.Error(err.Error())
+			return
+		}
+		index++
+	}
 
 }
 func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path string, expire_time string) (err error) {
