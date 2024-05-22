@@ -60,7 +60,7 @@ func FS_monitor_slow(ctx context.Context) {
 				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
 				unit := unit_query.Get_unitbyhostname(hostname)
-				slowdebounceEvent(hostname, 1000*time.Millisecond, func() {
+				slowdebounceEvent(hostname, 1500*time.Millisecond, func() {
 					Process_AI_result(hostname, unit.Machine_name)
 				})
 			}

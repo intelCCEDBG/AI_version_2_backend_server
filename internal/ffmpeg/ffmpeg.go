@@ -9,6 +9,7 @@ import (
 	"recorder/config"
 	"recorder/internal/structure"
 	"recorder/pkg/logger"
+	dut_query "recorder/pkg/mariadb/dut"
 	"syscall"
 	"time"
 )
@@ -52,6 +53,7 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		}
 		// TODO: handle error
 	}
+	dut_query.Set_dut_status_from_kvm(4, mh)
 	reso := "scale=320:180"
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url,
 		"-codec", "libx264", "-preset", "ultrafast", "-f", "hls", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
@@ -97,6 +99,15 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 func Get_picture_from_video(ts string, frame_index string, image_path string) error {
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", ts, "-vf", "select='eq(n\\,"+frame_index+")'", "-vsync", "vfr", image_path)
 	// logger.Info(cmd.String())
+	err := cmd.Run()
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	return err
+}
+
+func Take_photo(save_path string, target structure.Kvm) error {
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.Stream_url, "-vframes", "1", save_path)
 	err := cmd.Run()
 	if err != nil {
 		logger.Error(err.Error())

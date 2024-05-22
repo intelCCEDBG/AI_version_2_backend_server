@@ -33,7 +33,7 @@ func Get_AI_result(machine_name string) (result structure.AI_result) {
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
 	}
-	var status int64
+	var status int
 	var coords_str string
 	dataExist := false
 	for Result.Next() {
@@ -54,6 +54,29 @@ func Get_AI_result(machine_name string) (result structure.AI_result) {
 	ai_result.Label = status
 	ai_result.Coords = structure.Coord_s2f(coords_str)
 	return ai_result
+}
+func Get_project_name(machine_name string) string {
+	Result, err := method.Query("SELECT project_name FROM debug_unit JOIN project ON debug_unit.project=project.project_name where debug_unit.machine_name = ?", machine_name)
+	if err != nil {
+		logger.Error("Update AI result error: " + err.Error())
+	}
+	var Project string
+	for Result.Next() {
+		err := Result.Scan(&Project)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}
+	return Project
+}
+func Get_project_code(machine_name string) string {
+	Result := method.QueryRow("SELECT short_name FROM debug_unit JOIN project ON debug_unit.project=project.project_name where debug_unit.machine_name = ?", machine_name)
+	var Project string
+	err := Result.Scan(&Project)
+	if err != nil {
+		logger.Error("Search debug_unit error" + err.Error())
+	}
+	return Project
 }
 func Update_dut_cnt(machine_name string, cnt int) {
 	_, err := method.Exec("UPDATE machine SET cycle_cnt = ? WHERE machine_name = ?", cnt, machine_name)
@@ -81,4 +104,20 @@ func Get_dut_status(machine_name string) (dut_template structure.DUT) {
 		}
 	}
 	return dut_template
+}
+
+func Clean_Cycle_Count(machine_name string) {
+	logger.Info("Clean Cycle...")
+	_, err := method.Exec("UPDATE machine SET cycle_cnt = ? WHERE machine_name = ?", 0, machine_name)
+	if err != nil {
+		logger.Error("Update DUT status error: " + err.Error())
+	}
+}
+
+func Set_dut_status_from_kvm(status int, kvm structure.Kvm) {
+	_, err := method.Exec("UPDATE machine SET status=? WHERE machine_name = (SELECT machine_name FROM debug_unit WHERE hostname=?)", status, kvm.Hostname)
+	if err != nil {
+		logger.Error("update dut status error" + err.Error())
+		return
+	}
 }

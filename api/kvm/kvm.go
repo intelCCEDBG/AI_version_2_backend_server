@@ -18,16 +18,18 @@ import (
 
 	"golang.org/x/exp/slices"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-
 	"recorder/config"
 	videogen "recorder/internal/video_gen"
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
+	dut_query "recorder/pkg/mariadb/dut"
 	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/mariadb/method"
+	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/redis"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ApiResponse struct {
@@ -682,6 +684,9 @@ func Project_status(c *gin.Context) {
 			err = rows.Scan(&req.Hostname)
 			req.Stream_status = "recording"
 			json_data, err := json.Marshal(req)
+			// logger.Info("Enter...")
+			unit := unit_query.Get_unitbyhostname(req.Hostname)
+			dut_query.Clean_Cycle_Count(unit.Machine_name)
 			if err != nil {
 				logger.Error(err.Error())
 			}

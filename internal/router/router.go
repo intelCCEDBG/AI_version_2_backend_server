@@ -92,3 +92,5 @@ func Start_backend() {
 	router.GET("/api/project/floor", project.Get_Project_Floor)
 	router.Run(":" + Port)
 }
+
+// sudo docker compose up -d --build --force-recreate backend

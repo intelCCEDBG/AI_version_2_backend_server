@@ -21,6 +21,7 @@ type Debug_unit_info struct {
 	Record_status string `json:"record_status"`
 	Lock_coord    string `json:"lock_coord"`
 	Status        string `json:"status"`
+	Debug_host    string `json:"debug_host"`
 }
 
 type Project_info_response struct {
@@ -58,13 +59,13 @@ func Project_info(c *gin.Context) {
 			Project_list = append(Project_list, tmp)
 		}
 		for _, pj := range Project_list {
-			rows, err := method.Query("SELECT hostname, machine_name FROM debug_unit WHERE project=?;", pj)
+			rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;", pj)
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}
 			for rows.Next() {
 				var tmp Debug_unit_info
-				err = rows.Scan(&tmp.Hostname, &tmp.Machine_name)
+				err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Debug_host)
 				if err != nil {
 					logger.Error("Search project info error: " + err.Error())
 				}
@@ -85,14 +86,14 @@ func Project_info(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp2)
 		return
 	} else {
-		rows, err := method.Query("SELECT hostname, machine_name FROM debug_unit WHERE project=?;", project_name)
+		rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;", project_name)
 		if err != nil {
 			logger.Error("Search project info error: " + err.Error())
 		}
 		var tmp2 []Debug_unit_info
 		for rows.Next() {
 			var tmp Debug_unit_info
-			err = rows.Scan(&tmp.Hostname, &tmp.Machine_name)
+			err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Debug_host)
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}

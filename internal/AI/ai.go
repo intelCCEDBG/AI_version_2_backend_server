@@ -10,12 +10,15 @@ import (
 	"os"
 	"recorder/config"
 	"recorder/internal/cropping"
+	emailfunction "recorder/internal/email_function"
+	"recorder/internal/ffmpeg"
 	"recorder/internal/logpicqueue"
 	"recorder/internal/ssim"
 	"recorder/internal/structure"
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
+	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/rabbitmq"
 	"strconv"
 	"time"
@@ -47,6 +50,7 @@ func Start_ai_monitoring(ctx context.Context) {
 func Process_AI_result(hostname string, machine_name string) {
 	// unit := unit_query.Get_unitbyhostname(hostname)
 	// sta := dut_query.Get_dut_status(unit.Machine_name)
+	KVM := kvm_query.Get_kvm_status(hostname)
 	Ai_result := dut_query.Get_AI_result(machine_name)
 	if Ai_result.Hostname == "null" {
 		logger.Error("Machine " + machine_name + " not found in database")
@@ -64,47 +68,52 @@ func Process_AI_result(hostname string, machine_name string) {
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	err = logpicqueue.SendtoLogPicChannel(hostname, cropped_image)
+	err = logpicqueue.SendtoLogPicChannel(machine_name, cropped_image)
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	if Ai_result.Label == 0 {
-		dut_query.Update_dut_status(machine_name, 0)
-		dut_query.Update_dut_cnt(machine_name, 0)
-	} else {
-		dut_info := dut_query.Get_dut_status(machine_name)
-		if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
-			return
-		}
-		ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
-		if err != nil {
-			logger.Error(err.Error())
-			return
-		}
-		if ssim_result >= dut_info.Ssim {
-			dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
-			dut_info.Cycle_cnt++
-		} else {
-			dut_query.Update_dut_cnt(machine_name, 0)
-		}
-		if dut_info.Cycle_cnt == dut_info.Threshhold {
-			// dut_query.Update_dut_status(hostname, 4)
-			freeze_process(machine_name)
-		}
-		logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
+	// if Ai_result.Label == 0 {
+	// 	dut_query.Update_dut_status(machine_name, 0)
+	// 	dut_query.Update_dut_cnt(machine_name, 0)
+	// } else {
+	dut_info := dut_query.Get_dut_status(machine_name)
+	if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
+		return
 	}
+	ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	if ssim_result*100 >= dut_info.Ssim {
+		dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
+		dut_info.Cycle_cnt++
+	} else {
+		dut_query.Update_dut_cnt(machine_name, 1)
+	}
+	if dut_info.Cycle_cnt == dut_info.Threshhold*12 {
+		// dut_query.Update_dut_status(hostname, 4)
+		freeze_process(machine_name, Ai_result.Label, KVM)
+	}
+	logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
+	// }
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
 	}
 }
-func freeze_process(machine_name string) {
+func freeze_process(machine_name string, errortype int, kvm structure.Kvm) {
+	logger.Info("Machine " + machine_name + " Fail !")
 	copyFileFromQueue(machine_name)
-
+	current_picture_path := config.Viper.GetString("logimage_path") + machine_name + "/current.png"
+	ffmpeg.Take_photo(current_picture_path, kvm)
+	project := dut_query.Get_project_code(machine_name)
+	dut_query.Set_dut_status_from_kvm(errortype, kvm)
+	emailfunction.Send_alert_mail(machine_name, project, errortype)
 }
 func copyFileFromQueue(machine_name string) {
 	logpicqueue.BlockLogPicChannel(machine_name)
 	defer logpicqueue.UnblockLogPicChannel(machine_name)
-	var index = 0
+	var index = 1
 	for {
 		image := logpicqueue.GetChannelContent(machine_name)
 		if image == nil {
@@ -122,7 +131,11 @@ func copyFileFromQueue(machine_name string) {
 			logger.Error(err.Error())
 			return
 		}
+		outputFile.Close()
 		index++
+		if index == 4 {
+			break
+		}
 	}
 
 }

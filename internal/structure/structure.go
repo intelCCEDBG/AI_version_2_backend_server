@@ -44,7 +44,7 @@ type Unit struct {
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
 type AI_result struct {
 	Hostname string    `json:"hostname"`
-	Label    int64     `json:"label"`
+	Label    int       `json:"label"`
 	Coords   []float64 `json:"coords"`
 }
 
@@ -66,6 +66,9 @@ func Coord_s2f(coord string) []float64 {
 	values := strings.Split(coord, ",")
 	for _, value := range values {
 		// Convert the string to a float64
+		if len(value) == 0 {
+			break
+		}
 		floatValue, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			fmt.Println("Error converting string to float:", coord)

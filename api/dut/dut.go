@@ -2,6 +2,7 @@ package dut_api
 
 import (
 	"net/http"
+	"recorder/internal/logpicqueue"
 	"recorder/internal/structure"
 	apiservice "recorder/pkg/apiservice"
 	"recorder/pkg/logger"
@@ -121,6 +122,7 @@ func Dut_modify(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
 		return
 	}
+	logpicqueue.RenewThreshold(machine_name)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 func Dut_lock_coord(c *gin.Context) {
