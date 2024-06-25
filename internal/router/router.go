@@ -60,6 +60,7 @@ func Start_backend() {
 
 	//dut
 	router.GET("/api/dut/list", dut_api.Dut_list)
+	router.GET("/api/dut/listbyproject", dut_api.Project_dut_list)
 	router.GET("/api/dut/freelist", dut_api.Dut_freelist)
 	router.GET("/api/dut/info", dut_api.Dut_info)
 	router.GET("/api/dut/all_info", dut_api.Dut_all_info)
@@ -69,6 +70,7 @@ func Start_backend() {
 	router.GET("/api/dut/lockframe", dut_api.Dut_lock_coord)
 	router.GET("/api/dut/unlockframe", dut_api.Dut_unlock_coord)
 	router.GET("/api/dut/islocked", dut_api.Dut_islocked)
+	router.GET("/api/dut/errorlog", dut_api.Dut_errorlog)
 
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
@@ -90,6 +92,8 @@ func Start_backend() {
 	router.OPTIONS("/api/project/project_exec", project.Control)
 	router.GET("/api/project/freeze_switch", project.Freeze_detection)
 	router.GET("/api/project/floor", project.Get_Project_Floor)
+	router.GET("/api/project/reportstate", project.Get_Report_State)
+	router.GET("/api/project/addnewproject", project.Add_new_project)
 	router.Run(":" + Port)
 }
 

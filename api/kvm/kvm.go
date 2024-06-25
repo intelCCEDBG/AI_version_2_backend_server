@@ -371,6 +371,10 @@ func Kvm_csv2db() {
 	if err != nil {
 		logger.Error(err.Error())
 	}
+	_, err = method.Exec("DELETE FROM kvm_message")
+	if err != nil {
+		logger.Error(err.Error())
+	}
 	_, err = method.Exec("DELETE FROM kvm")
 	if err != nil {
 		logger.Error(err.Error())
@@ -436,7 +440,7 @@ func Dut_csv2db() {
 			var tmp0 string = line[0]
 			var tmp1 string = line[1]
 			var tmp2 string = line[2]
-			_, err = method.Exec("INSERT INTO machine ( machine_name, ssim, status, cycle_cnt, error_timestamp, path, threshold) VALUES (?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, 1, 0, 0, "null", tmp2)
+			_, err = method.Exec("INSERT INTO machine ( machine_name, ssim, status, cycle_cnt, error_timestamp, path, threshold, lock_coord) VALUES (?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, 1, 0, 0, "null", tmp2, "")
 			if err != nil {
 				logger.Error(err.Error())
 			}
@@ -470,7 +474,7 @@ func Dbgunit_csv2db() {
 		}
 	}
 	Project_list := make(map[string]bool)
-	rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
+	rows, err := method.Query("SELECT project_name FROM project;")
 	if err != nil {
 		logger.Error("Query project list error: " + err.Error())
 	}
@@ -479,7 +483,7 @@ func Dbgunit_csv2db() {
 		err = rows.Scan(&tmp)
 		Project_list[tmp] = true
 	}
-	rows, err = method.Query("SELECT project_name FROM project;")
+	rows, err = method.Query("SELECT DISTINCT project FROM debug_unit;")
 	if err != nil {
 		logger.Error("Query project list error: " + err.Error())
 	}
@@ -492,7 +496,7 @@ func Dbgunit_csv2db() {
 	}
 }
 func create_new_project(project_name string) {
-	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?);", project_name, project_name[:4], "", "", 0, "open")
+	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?);", project_name, project_name, "", "", 0, "open")
 	if err != nil {
 		logger.Error("INSERT project list error: " + err.Error())
 	}
@@ -599,8 +603,12 @@ func Kvm_status(c *gin.Context) {
 			}
 			client := &http.Client{Transport: tr, Timeout: 7 * time.Second}
 			_, err := client.Get("https://" + ip + ":8443/api/switch_mode?mode=motion")
+			if err != nil {
+				logger.Error(err.Error())
+			}
+			fmt.Println("Enter Redis")
 			redis.Redis_set("kvm:"+Req.Hostname+":recording", Req.Hostname)
-			// fmt.Println("finish writing")
+			fmt.Println("finish writing")
 			for {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
 				var stream_status string
@@ -691,10 +699,10 @@ func Project_status(c *gin.Context) {
 				logger.Error(err.Error())
 			}
 			Port := config.Viper.GetString("SERVER_PORT")
-			http.DefaultClient.Timeout = time.Second * 20
+			// http.DefaultClient.Timeout = time.Second * 20
 			go func(Port string, json_data []byte, Hostname string) {
 				defer wg.Done()
-				http.Post("http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+				http.Post("http://127.0.0.1:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
 				// fmt.Println(Hostname)
 			}(Port, json_data, req.Hostname)
 			// req, err := http.NewRequest("POST", "http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", bytes.NewReader(marshalled))

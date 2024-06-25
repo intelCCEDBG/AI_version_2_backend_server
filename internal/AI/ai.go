@@ -53,7 +53,7 @@ func Process_AI_result(hostname string, machine_name string) {
 	KVM := kvm_query.Get_kvm_status(hostname)
 	Ai_result := dut_query.Get_AI_result(machine_name)
 	if Ai_result.Hostname == "null" {
-		logger.Error("Machine " + machine_name + " not found in database")
+		logger.Info("Machine " + machine_name + " not found in database, Adding new record...")
 		return
 	}
 	if len(Ai_result.Coords) == 0 {
@@ -90,6 +90,7 @@ func Process_AI_result(hostname string, machine_name string) {
 		dut_info.Cycle_cnt++
 	} else {
 		dut_query.Update_dut_cnt(machine_name, 1)
+		dut_query.Update_dut_status(hostname, 4)
 	}
 	if dut_info.Cycle_cnt == dut_info.Threshhold*12 {
 		// dut_query.Update_dut_status(hostname, 4)

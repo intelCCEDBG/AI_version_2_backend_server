@@ -7,11 +7,11 @@ import (
 )
 
 type Kvm struct {
-	Hostname          string
-	Stream_url        string
-	Stream_status     string
-	Stream_interface  string
-	Start_record_time int64
+	Hostname          string `json:"hostname"`
+	Stream_url        string `json:"url"`
+	Stream_status     string `json:"status"`
+	Stream_interface  string `json:"interface"`
+	Start_record_time int64  `json:"start"`
 }
 type Target struct {
 	Hostname string
@@ -27,12 +27,12 @@ type Result_message struct {
 	Expire   int64     `json:"expire"`
 }
 type DUT struct {
-	Machine_name string
-	Ssim         float64
-	Cycle_cnt    int
-	Status       string
-	Threshhold   int
-	Lock_coord   string
+	Machine_name string  `json:"machine_name"`
+	Ssim         float64 `json:"ssim"`
+	Cycle_cnt    int     `json:"cycle"`
+	Status       string  `json:"status"`
+	Threshhold   int     `json:"threshold"`
+	Lock_coord   string  `json:"lock_coord"`
 }
 type Unit struct {
 	Hostname     string
@@ -40,12 +40,27 @@ type Unit struct {
 	Machine_name string
 	Project      string
 }
+type Unit_detail struct {
+	Hostname     Kvm    `json:"kvms"`
+	Ip           string `json:"dbgs"`
+	Machine_name DUT    `json:"duts"`
+	Project      string `json:"project"`
+}
 
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
 type AI_result struct {
 	Hostname string    `json:"hostname"`
 	Label    int       `json:"label"`
 	Coords   []float64 `json:"coords"`
+}
+
+type Errorlog struct {
+	Time      string `json:"time"`
+	Type      string `json:"type"`
+	Test_item string `json:"test_item"`
+	Sku       string `json:"sku"`
+	Image     string `json:"image"`
+	Bios      string `json:"bios"`
 }
 
 func Coord_f2s(coord []float64) string {

@@ -10,7 +10,7 @@ import (
 )
 
 func String_to_Email(email_string string) []structure.Email_tamplate {
-	var Out_email_list []structure.Email_tamplate
+	Out_email_list := []structure.Email_tamplate{}
 	var Out_email_template structure.Email_tamplate
 	email_list := strings.Split(email_string, " ")
 	for _, S := range email_list {

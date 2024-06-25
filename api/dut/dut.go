@@ -7,6 +7,7 @@ import (
 	apiservice "recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
+	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	"recorder/pkg/mariadb/method"
 
 	"github.com/gin-gonic/gin"
@@ -109,6 +110,7 @@ func Dut_search(c *gin.Context) {
 	if err != nil {
 		logger.Error("Search dut mapping error" + err.Error())
 	}
+	res.Project = dut_query.Get_project_name(machine_name)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 
@@ -158,4 +160,27 @@ func Dut_status(c *gin.Context) {
 		return
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func Dut_errorlog(c *gin.Context) {
+	machine_name := c.Query("machine_name")
+	res := errorlog_query.Get_all_error(machine_name)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
+}
+func Project_dut_list(c *gin.Context) {
+	var Dut_list Dutlist_Response
+	project_name := c.Query("project")
+	rows, err := method.Query("SELECT machine_name FROM debug_unit WHERE project=?;", project_name)
+	if err != nil {
+		logger.Error("Query dut list by project error: " + err.Error())
+	}
+	for rows.Next() {
+		var tmp string
+		err = rows.Scan(&tmp)
+		Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+	}
+	if Dut_list.Machine_name == nil {
+		tmp := []string{}
+		Dut_list.Machine_name = tmp
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
 }

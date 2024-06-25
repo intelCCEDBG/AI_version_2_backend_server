@@ -44,6 +44,10 @@ type Project_floor struct {
 	Floor  []string `json:"floor"`
 	Amount []int    `json:"amount"`
 }
+type Report_State struct {
+	Fail  []int `json:"fail"`
+	Total int   `json:"total"`
+}
 
 func Get_Project_setting(c *gin.Context) {
 	var Project_setting_out structure.Project_setting_Tamplate
@@ -239,4 +243,20 @@ func Get_Project_Floor(c *gin.Context) {
 		Floor_out.Amount = append(Floor_out.Amount, Floor_map[floor])
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Floor_out)
+}
+func Get_Report_State(c *gin.Context) {
+	project := c.Query("project")
+	Resp := project_query.Get_Units(project)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+}
+func Add_new_project(c *gin.Context) {
+	project := c.Query("project")
+	create_new_project(project)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func create_new_project(project_name string) {
+	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?, ?);", project_name, project_name, "", "", 0, "open")
+	if err != nil {
+		logger.Error("INSERT project error: " + err.Error())
+	}
 }
