@@ -575,7 +575,7 @@ func Kvm_status(c *gin.Context) {
 	action := c.Query("action")
 	var Resp Kvm_state
 	var Req Kvm_state
-	body, _ := ioutil.ReadAll(c.Request.Body)
+	body, _ := io.ReadAll(c.Request.Body)
 	_ = json.Unmarshal(body, &Req)
 	if action == "search" {
 		Resp.Hostname = Req.Hostname
@@ -672,7 +672,18 @@ func Kvm_genvideo(c *gin.Context) {
 	Req.Minute, _ = strconv.Atoi(c.Query("minute"))
 	// fmt.Println(Req.Duration)
 	// fmt.Println(Req.Hostname)
-	videogen.GenerateVideo(Req.Hour, Req.Minute, Req.Duration, Req.Hostname)
+	videogen.GenerateVideo(Req.Hour, Req.Minute, Req.Duration, Req.Hostname, "self-define")
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+func Kvm_genminutevideo(c *gin.Context) {
+	var Req Video_info
+	Req.Hostname = c.Query("kvm_hostname")
+	Req.Hour, _ = strconv.Atoi(c.Query("hour"))
+	Req.Duration, _ = strconv.Atoi(c.Query("duration"))
+	Req.Minute, _ = strconv.Atoi(c.Query("minute"))
+	fmt.Println(Req.Hour)
+	fmt.Println(Req.Minute)
+	videogen.GenerateVideo(Req.Hour, Req.Minute, Req.Duration, Req.Hostname, c.Query("duration")+"M")
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
@@ -731,7 +742,7 @@ func Project_status(c *gin.Context) {
 			http.DefaultClient.Timeout = time.Second * 20
 			go func(Port string, json_data []byte) {
 				defer wg.Done()
-				http.Post("http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
+				http.Post("http://127.0.0.1:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
 			}(Port, json_data)
 			// if err != nil {
 			// logger.Error(err.Error())

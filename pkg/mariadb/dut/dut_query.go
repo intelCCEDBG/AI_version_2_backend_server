@@ -23,7 +23,7 @@ func Update_AI_result(machine_name string, status int64, coords []float64) {
 		}
 	}
 	cur_time := time.Now()
-	_, err := method.Exec("INSERT INTO ai_result (machine_name, status, coords, time) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE status = VALUES(status), coords = VALUES(coords),time = VALUES(time);", machine_name, status, coords_str, cur_time)
+	_, err := method.Exec("REPLACE INTO ai_result (machine_name, status, coords, time) VALUES (?, ?, ?, ?)", machine_name, status, coords_str, cur_time)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
 	}
@@ -116,6 +116,33 @@ func Clean_Cycle_Count(machine_name string) {
 
 func Set_dut_status_from_kvm(status int, kvm structure.Kvm) {
 	_, err := method.Exec("UPDATE machine SET status=? WHERE machine_name = (SELECT machine_name FROM debug_unit WHERE hostname=?)", status, kvm.Hostname)
+	if err != nil {
+		logger.Error("update dut status error" + err.Error())
+		return
+	}
+}
+func Get_machine_status(machine_name string) (machine_status structure.Machine_status) {
+	KVM, err := method.Query("SELECT machine_name,test_item,sku,image,bios FROM machine_status where machine_name = " + "'" + machine_name + "'")
+	if err != nil {
+		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
+	}
+	machine_status.Machine_name = machine_name
+	machine_status.Bios = "null"
+	machine_status.Image = "null"
+	machine_status.Sku = "null"
+	machine_status.Test_item = "null"
+
+	for KVM.Next() {
+		err := KVM.Scan(&machine_status.Machine_name, &machine_status.Test_item, &machine_status.Sku, &machine_status.Image, &machine_status.Bios)
+		if err != nil {
+			logger.Error(err.Error())
+			return machine_status
+		}
+	}
+	return machine_status
+}
+func Set_machine_status(machine_status structure.Machine_status) {
+	_, err := method.Exec("REPLACE INTO machine_status (machine_name,test_item,sku, image, bios) VALUES (?, ?, ?, ?, ?)", machine_status.Machine_name, machine_status.Test_item, machine_status.Sku, machine_status.Image, machine_status.Bios)
 	if err != nil {
 		logger.Error("update dut status error" + err.Error())
 		return

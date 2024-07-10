@@ -66,6 +66,7 @@ func SendtoLogPicChannel(key string, value image.Image) error {
 	// This function may cause picture misorder
 	usedmutex.Lock()
 	if mutexused[key] {
+		usedmutex.Unlock()
 		return nil
 	}
 	usedmutex.Unlock()
@@ -128,6 +129,7 @@ func UnblockLogPicChannel(key string) {
 
 func RenewThreshold(key string) error {
 	BlockLogPicChannel(key)
+	defer UnblockLogPicChannel(key)
 	dut := dut_query.Get_dut_status(key)
 	if dut.Machine_name == "null" {
 		return errors.New("machine not found")
@@ -137,7 +139,6 @@ func RenewThreshold(key string) error {
 	channelmapsmutex.Lock()
 	defer channelmapsmutex.Unlock()
 	LogPicChannel_channel[key] = NewLogPicChannel(dut.Threshhold*12 + amount)
-	UnblockLogPicChannel(key)
 	return nil
 }
 

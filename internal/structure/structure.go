@@ -55,12 +55,22 @@ type AI_result struct {
 }
 
 type Errorlog struct {
-	Time      string `json:"time"`
-	Type      string `json:"type"`
-	Test_item string `json:"test_item"`
-	Sku       string `json:"sku"`
-	Image     string `json:"image"`
-	Bios      string `json:"bios"`
+	Machine_name string `json:"machine_name"`
+	Time         string `json:"time"`
+	Type         string `json:"type"`
+	Test_item    string `json:"test_item"`
+	Sku          string `json:"sku"`
+	Image        string `json:"image"`
+	Bios         string `json:"bios"`
+	Uuid         string `json:"uuid"`
+}
+
+type Machine_status struct {
+	Machine_name string `json:"machine"`
+	Test_item    string `json:"test_item"`
+	Sku          string `json:"sku"`
+	Image        string `json:"image"`
+	Bios         string `json:"bios"`
 }
 
 func Coord_f2s(coord []float64) string {

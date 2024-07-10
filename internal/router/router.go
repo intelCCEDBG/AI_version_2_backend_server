@@ -9,6 +9,7 @@ import (
 	email "recorder/api/email"
 	kvm_api "recorder/api/kvm"
 	"recorder/api/project"
+	"recorder/api/system"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -71,8 +72,10 @@ func Start_backend() {
 	router.GET("/api/dut/unlockframe", dut_api.Dut_unlock_coord)
 	router.GET("/api/dut/islocked", dut_api.Dut_islocked)
 	router.GET("/api/dut/errorlog", dut_api.Dut_errorlog)
+	router.GET("/api/dut/deleteErrorlog", dut_api.Dut_deleteerrorlog)
 
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
+	router.GET("/api/kvm/gen_minute_video", kvm_api.Kvm_genminutevideo)
 	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	//debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
@@ -95,6 +98,9 @@ func Start_backend() {
 	router.GET("/api/project/reportstate", project.Get_Report_State)
 	router.GET("/api/project/addnewproject", project.Add_new_project)
 	router.Run(":" + Port)
+
+	router.GET("/api/system/CPU", system.Get_CPU_status)
+
 }
 
 // sudo docker compose up -d --build --force-recreate backend

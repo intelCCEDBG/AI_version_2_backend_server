@@ -27,7 +27,7 @@ func init() {
 func Start_service() {
 	Connection_close := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	get_recording_kvm_back()
+	// get_recording_kvm_back()
 	go monitor_stop_signal()
 	go monitor_start_signal()
 	go monitor_error_signal()
@@ -43,8 +43,8 @@ func Start_service() {
 	select {
 	case <-Connection_close:
 		logger.Info("Connection closed")
-	case <-time.After(20 * time.Second):
-		logger.Info("Connection close fail, force shutdown after 5 seconds")
+	case <-time.After(40 * time.Second):
+		logger.Info("Connection close fail, force shutdown after 40 seconds")
 	}
 	fmt.Println("Server shutdown complete.")
 }
@@ -93,17 +93,18 @@ func monitor_start_signal() {
 				Kvm := kvm_query.Get_kvm_status(hostname)
 				time.Sleep(5 * time.Second)
 				go ffmpeg.Record(Stop_signal_out_channel, Kvm, ctx)
+				go record_buffer(hostname)
 				kvm.IdletoRecord(hostname)
 				redis.Redis_del(key)
 			}
 			start_process()
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }
 func servershutdown(Connection_close chan int) {
 	stop_recording_all()
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 	Connection_close <- 1
 }
 func get_recording_kvm_back() {
@@ -113,6 +114,12 @@ func get_recording_kvm_back() {
 		Stop_channel[element.Hostname] = cancel
 		go ffmpeg.Record(Stop_signal_out_channel, element, ctx)
 	}
+}
+
+func record_buffer(hostname string) { //for machines who freeze since the start of the recording. Prevent the corruption of error video file.
+	redis.Redis_set("kvm:"+hostname+":holding", hostname)
+	time.Sleep(120 * time.Second)
+	redis.Redis_del("kvm:" + hostname + ":holding")
 }
 
 func stop_recording_all() {

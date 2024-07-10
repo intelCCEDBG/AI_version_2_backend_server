@@ -2,9 +2,11 @@ package dut_api
 
 import (
 	"net/http"
+	"recorder/config"
 	"recorder/internal/logpicqueue"
 	"recorder/internal/structure"
 	apiservice "recorder/pkg/apiservice"
+	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
@@ -164,6 +166,16 @@ func Dut_status(c *gin.Context) {
 func Dut_errorlog(c *gin.Context) {
 	machine_name := c.Query("machine_name")
 	res := errorlog_query.Get_all_error(machine_name)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
+}
+func Dut_deleteerrorlog(c *gin.Context) {
+	machine_name := c.Query("machine_name")
+	path := config.Viper.GetString("ERROR_VIDEO_PATH")
+	res := errorlog_query.Delete_all_error(machine_name)
+	err := fileoperation.DeleteFiles(path + machine_name + "/")
+	if err != nil {
+		logger.Error("Delete error video error: " + err.Error())
+	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 func Project_dut_list(c *gin.Context) {

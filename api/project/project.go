@@ -187,28 +187,28 @@ func Control(c *gin.Context) {
 	if err != nil {
 		logger.Error("Reading freeze status error: " + err.Error())
 	}
-	if In_pakage.Operation == "Stop" {
+	if In_pakage.Operation == "stop" {
 		log.Println("Stop Project:", In_pakage.Project_name)
 		_, err = method.Exec("UPDATE project SET status=? WHERE project_name=?;", 0, In_pakage.Project_name)
 		if err != nil {
 			logger.Error("Reading freeze status error: " + err.Error())
 		}
 		//todo
-	} else if In_pakage.Operation == "Start" {
+	} else if In_pakage.Operation == "start" {
 		log.Println("Lock Project:", In_pakage.Project_name)
 		_, err = method.Exec("UPDATE project SET status=? WHERE project_name=?;", 2, In_pakage.Project_name)
 		if err != nil {
 			logger.Error("Reading freeze status error: " + err.Error())
 		}
 		//todo
-	} else if In_pakage.Operation == "Wake" {
+	} else if In_pakage.Operation == "wake" {
 		log.Println("Wake Project:", In_pakage.Project_name)
 		_, err = method.Exec("UPDATE project SET status=? WHERE project_name=?;", 1, In_pakage.Project_name)
 		if err != nil {
 			logger.Error("Reading freeze status error: " + err.Error())
 		}
 		//todo
-	} else if In_pakage.Operation == "Reset" {
+	} else if In_pakage.Operation == "reset" {
 		log.Println("Reset Project:", In_pakage.Project_name)
 		_, err = method.Exec("UPDATE project SET status=? WHERE project_name=?;", 3, In_pakage.Project_name)
 		if err != nil {

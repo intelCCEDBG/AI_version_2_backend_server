@@ -37,3 +37,10 @@ func CopyFile(src string, dest string) error {
 	}
 	return nil
 }
+func DeleteFiles(path string) error {
+	err := os.RemoveAll(path)
+	if err != nil {
+		return err
+	}
+	return nil
+}

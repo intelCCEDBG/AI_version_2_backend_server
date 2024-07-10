@@ -15,13 +15,18 @@ import (
 	"recorder/internal/logpicqueue"
 	"recorder/internal/ssim"
 	"recorder/internal/structure"
+	videogen "recorder/internal/video_gen"
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
+	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/rabbitmq"
+	"recorder/pkg/redis"
 	"strconv"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var AI_list []string
@@ -50,10 +55,14 @@ func Start_ai_monitoring(ctx context.Context) {
 func Process_AI_result(hostname string, machine_name string) {
 	// unit := unit_query.Get_unitbyhostname(hostname)
 	// sta := dut_query.Get_dut_status(unit.Machine_name)
+	key := redis.Redis_get_by_pattern("kvm:" + hostname + ":holding")
+	if len(key) != 0 {
+		return
+	}
 	KVM := kvm_query.Get_kvm_status(hostname)
 	Ai_result := dut_query.Get_AI_result(machine_name)
 	if Ai_result.Hostname == "null" {
-		logger.Info("Machine " + machine_name + " not found in database, Adding new record...")
+		logger.Debug("Machine " + machine_name + " not found in database. ") //This may happens when camera did not catch anything.
 		return
 	}
 	if len(Ai_result.Coords) == 0 {
@@ -76,16 +85,18 @@ func Process_AI_result(hostname string, machine_name string) {
 	// 	dut_query.Update_dut_status(machine_name, 0)
 	// 	dut_query.Update_dut_cnt(machine_name, 0)
 	// } else {
-	dut_info := dut_query.Get_dut_status(machine_name)
 	if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
 		return
 	}
 	ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
+
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
+	dut_info := dut_query.Get_dut_status(machine_name)
 	if ssim_result*100 >= dut_info.Ssim {
+		// logger.Info("Freeze: " + hostname)
 		dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
 		dut_info.Cycle_cnt++
 	} else {
@@ -94,16 +105,23 @@ func Process_AI_result(hostname string, machine_name string) {
 	}
 	if dut_info.Cycle_cnt == dut_info.Threshhold*12 {
 		// dut_query.Update_dut_status(hostname, 4)
-		freeze_process(machine_name, Ai_result.Label, KVM)
+		freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
 	}
-	logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
+	// logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
 	// }
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
 	}
 }
-func freeze_process(machine_name string, errortype int, kvm structure.Kvm) {
+func freeze_process(machine_name string, errortype int, kvm structure.Kvm, threshold int) {
 	logger.Info("Machine " + machine_name + " Fail !")
+	Machine_status := dut_query.Get_machine_status(machine_name)
+	error_record := create_new_error_record(machine_name, strconv.Itoa(errortype), Machine_status)
+	currentTime := time.Now()
+	// threshold*=-1
+	freezetime := currentTime.Add(time.Duration((threshold+2)*-1) * time.Minute)
+	logger.Info(freezetime.String())
+	videogen.GenerateErrorVideo(freezetime.Hour(), freezetime.Minute(), 180, kvm.Hostname, machine_name, error_record.Uuid)
 	copyFileFromQueue(machine_name)
 	current_picture_path := config.Viper.GetString("logimage_path") + machine_name + "/current.png"
 	ffmpeg.Take_photo(current_picture_path, kvm)
@@ -164,4 +182,17 @@ func Send_to_rabbitMQ(hostname string, machine_name string, locked string, path 
 	rabbitmq.Publish_with_expiration("AI_queue1", jsonMessage, expire_time)
 	imageFile.Close()
 	return nil
+}
+func create_new_error_record(machine_name string, errortype string, machine_status structure.Machine_status) structure.Errorlog {
+	var errorlog structure.Errorlog
+	errorlog.Machine_name = machine_name
+	errorlog.Time = time.Now().Format("2006-01-02 15:04:05")
+	errorlog.Type = errortype
+	errorlog.Test_item = machine_status.Test_item
+	errorlog.Sku = machine_status.Sku
+	errorlog.Image = machine_status.Image
+	errorlog.Bios = machine_status.Bios
+	errorlog.Uuid = uuid.New().String()
+	errorlog_query.Set_error_record(errorlog)
+	return errorlog
 }
