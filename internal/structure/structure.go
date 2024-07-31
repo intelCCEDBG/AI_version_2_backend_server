@@ -27,12 +27,13 @@ type Result_message struct {
 	Expire   int64     `json:"expire"`
 }
 type DUT struct {
-	Machine_name string  `json:"machine_name"`
-	Ssim         float64 `json:"ssim"`
-	Cycle_cnt    int     `json:"cycle"`
-	Status       string  `json:"status"`
-	Threshhold   int     `json:"threshold"`
-	Lock_coord   string  `json:"lock_coord"`
+	Machine_name   string  `json:"machine_name"`
+	Ssim           float64 `json:"ssim"`
+	Cycle_cnt      int     `json:"cycle"`
+	Cycle_cnt_high int     `json:"cycle_high"`
+	Status         int     `json:"status"`
+	Threshhold     int     `json:"threshold"`
+	Lock_coord     string  `json:"lock_coord"`
 }
 type Unit struct {
 	Hostname     string
@@ -45,6 +46,11 @@ type Unit_detail struct {
 	Ip           string `json:"dbgs"`
 	Machine_name DUT    `json:"duts"`
 	Project      string `json:"project"`
+	Test_item    string `json:"test_item"`
+	Sku          string `json:"sku"`
+	Image        string `json:"image"`
+	Bios         string `json:"bios"`
+	Config       string `json:"config"`
 }
 
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
@@ -63,6 +69,7 @@ type Errorlog struct {
 	Image        string `json:"image"`
 	Bios         string `json:"bios"`
 	Uuid         string `json:"uuid"`
+	Config       string `json:"config"`
 }
 
 type Machine_status struct {
@@ -71,6 +78,13 @@ type Machine_status struct {
 	Sku          string `json:"sku"`
 	Image        string `json:"image"`
 	Bios         string `json:"bios"`
+	Config       string `json:"config"`
+}
+
+type Ssim_and_threshold struct {
+	Projet string `json:"project"`
+	Ssim   int    `json:"ssim"`
+	Thresh int    `json:"threshold"`
 }
 
 func Coord_f2s(coord []float64) string {

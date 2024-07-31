@@ -84,6 +84,12 @@ func Update_dut_cnt(machine_name string, cnt int) {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
+func Update_dut_cnt_high(machine_name string, cnt int) {
+	_, err := method.Exec("UPDATE machine SET cycle_cnt_high = ? WHERE machine_name = ?", cnt, machine_name)
+	if err != nil {
+		logger.Error("Update DUT status error: " + err.Error())
+	}
+}
 func Update_lock_coord(machine_name string, coord string) {
 	_, err := method.Exec("UPDATE machine SET lock_coord = ? WHERE machine_name = ?", coord, machine_name)
 	if err != nil {
@@ -91,17 +97,34 @@ func Update_lock_coord(machine_name string, coord string) {
 	}
 }
 func Get_dut_status(machine_name string) (dut_template structure.DUT) {
-	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,status,threshold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
+	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,cycle_cnt_high, status,threshold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}
 	dut_template.Machine_name = "null"
 	for KVM.Next() {
-		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Status, &dut_template.Threshhold, &dut_template.Lock_coord)
+		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Cycle_cnt_high, &dut_template.Status, &dut_template.Threshhold, &dut_template.Lock_coord)
 		if err != nil {
 			logger.Error(err.Error())
 			return dut_template
 		}
+	}
+	return dut_template
+}
+func Get_all_dut_status() (dut_template []structure.DUT) {
+
+	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,cycle_cnt_high,status,threshold,lock_coord FROM machine")
+	if err != nil {
+		logger.Error("Query All DUT error: " + err.Error())
+	}
+	for KVM.Next() {
+		var dut structure.DUT
+		err := KVM.Scan(&dut.Machine_name, &dut.Ssim, &dut.Cycle_cnt, &dut.Cycle_cnt_high, &dut.Status, &dut.Threshhold, &dut.Lock_coord)
+		if err != nil {
+			logger.Error(err.Error())
+			return dut_template
+		}
+		dut_template = append(dut_template, dut)
 	}
 	return dut_template
 }
@@ -142,7 +165,7 @@ func Get_machine_status(machine_name string) (machine_status structure.Machine_s
 	return machine_status
 }
 func Set_machine_status(machine_status structure.Machine_status) {
-	_, err := method.Exec("REPLACE INTO machine_status (machine_name,test_item,sku, image, bios) VALUES (?, ?, ?, ?, ?)", machine_status.Machine_name, machine_status.Test_item, machine_status.Sku, machine_status.Image, machine_status.Bios)
+	_, err := method.Exec("REPLACE INTO machine_status (machine_name,test_item,sku, image, bios, config) VALUES (?, ?, ?, ?, ?, ?)", machine_status.Machine_name, machine_status.Test_item, machine_status.Sku, machine_status.Image, machine_status.Bios, machine_status.Config)
 	if err != nil {
 		logger.Error("update dut status error" + err.Error())
 		return

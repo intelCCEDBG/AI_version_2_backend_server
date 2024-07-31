@@ -23,7 +23,8 @@ func Start_backend() {
 	corsConfig.AllowMethods = []string{"*"}
 	corsConfig.AllowHeaders = []string{"*"}
 	router.RedirectFixedPath = true
-	router.Use(cors.New(corsConfig))
+	router.Use(corsMiddleware())
+	// router.Use(cors.New(corsConfig))
 
 	Port := config.Viper.GetString("SERVER_PORT")
 
@@ -72,7 +73,11 @@ func Start_backend() {
 	router.GET("/api/dut/unlockframe", dut_api.Dut_unlock_coord)
 	router.GET("/api/dut/islocked", dut_api.Dut_islocked)
 	router.GET("/api/dut/errorlog", dut_api.Dut_errorlog)
+	router.GET("/api/dut/seterrorlog", dut_api.Set_dut_errorlog)
+	router.POST("/api/dut/setmachinestatus", dut_api.Set_dut_machine_status)
+	router.OPTIONS("/api/dut/setmachinestatus", dut_api.Set_dut_machine_status)
 	router.GET("/api/dut/deleteErrorlog", dut_api.Dut_deleteerrorlog)
+	router.GET("/api/dut/deleteErrorlogbyproject", dut_api.Dut_deleteerrorlog_project)
 
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.GET("/api/kvm/gen_minute_video", kvm_api.Kvm_genminutevideo)
@@ -97,10 +102,30 @@ func Start_backend() {
 	router.GET("/api/project/floor", project.Get_Project_Floor)
 	router.GET("/api/project/reportstate", project.Get_Report_State)
 	router.GET("/api/project/addnewproject", project.Add_new_project)
-	router.Run(":" + Port)
+	router.GET("/api/project/deleteproject", project.Delete_project)
+	router.GET("/api/project/ssim_threshold", project.Get_ssim_and_threshold)
+	router.POST("/api/project/ssim_threshold", project.Update_ssim_and_threshold)
+	router.OPTIONS("/api/project/ssim_threshold", project.Update_ssim_and_threshold)
 
 	router.GET("/api/system/CPU", system.Get_CPU_status)
 
+	router.POST("/api/export/all", dbgunit_api.Save_csv)
+	router.Run(":" + Port)
+
+}
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }
 
 // sudo docker compose up -d --build --force-recreate backend

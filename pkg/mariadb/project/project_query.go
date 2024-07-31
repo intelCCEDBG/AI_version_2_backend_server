@@ -122,6 +122,11 @@ func Get_Units(project string) []structure.Unit_detail {
 			logger.Error(err.Error())
 			return UNITS
 		}
+		Detail := method.QueryRow("SELECT test_item, sku, image, bios, config FROM machine_status where machine_name=?", Tmp)
+		err = Detail.Scan(&unit.Test_item, &unit.Sku, &unit.Image, &unit.Bios, &unit.Config)
+		if err != nil {
+			logger.Error(err.Error())
+		}
 		unit.Machine_name = dut_query.Get_dut_status(Tmp)
 		unit.Ip = Tmp3
 		unit.Hostname = kvm_query.Get_kvm_status(Tmp2)
@@ -129,4 +134,39 @@ func Get_Units(project string) []structure.Unit_detail {
 		UNITS = append(UNITS, unit)
 	}
 	return UNITS
+}
+func Get_ssim_and_threshold(project string) structure.Ssim_and_threshold {
+	var Resp structure.Ssim_and_threshold
+	row := method.QueryRow("SELECT A.ssim, A.threshold from machine A, debug_unit B WHERE B.project = ? && A.machine_name = B.machine_name limit 1;", project)
+	err := row.Scan(&Resp.Ssim, &Resp.Thresh)
+	Resp.Projet = project
+	if err != nil {
+		logger.Error("Reading ssim status error: " + err.Error())
+	}
+	return Resp
+}
+func Update_ssim_and_threshold(Resp structure.Ssim_and_threshold) {
+	_, err := method.Exec("UPDATE machine A, debug_unit B SET A.ssim = ?, A.threshold = ? WHERE B.project = ? && A.machine_name = B.machine_name;", Resp.Ssim, Resp.Thresh, Resp.Projet)
+	if err != nil {
+		logger.Error("Update ssim status error: " + err.Error())
+	}
+}
+func Get_upper_bound(project string) int {
+	var upper_bound int
+	row := method.QueryRow("SELECT upper_bound from project where project_name = ?", project)
+	err := row.Scan(&upper_bound)
+	if err != nil {
+		logger.Error("Reading upper bound error: " + err.Error())
+	}
+	return upper_bound
+}
+func Delete_project(project string) {
+	_, err := method.Exec("DELETE FROM project WHERE project_name = ?", project)
+	if err != nil {
+		logger.Error("Delete project error: " + err.Error())
+	}
+	_, err = method.Exec("DELETE FROM debug_unit WHERE project = ?", project)
+	if err != nil {
+		logger.Error("Delete project error: " + err.Error())
+	}
 }

@@ -440,7 +440,7 @@ func Dut_csv2db() {
 			var tmp0 string = line[0]
 			var tmp1 string = line[1]
 			var tmp2 string = line[2]
-			_, err = method.Exec("INSERT INTO machine ( machine_name, ssim, status, cycle_cnt, error_timestamp, path, threshold, lock_coord) VALUES (?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, 1, 0, 0, "null", tmp2, "")
+			_, err = method.Exec("INSERT INTO machine ( machine_name, ssim, status, cycle_cnt,cycle_cnt_high,  error_timestamp, path, threshold, lock_coord) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, 1, 0, 0, 0, "null", tmp2, "")
 			if err != nil {
 				logger.Error(err.Error())
 			}
@@ -496,7 +496,7 @@ func Dbgunit_csv2db() {
 	}
 }
 func create_new_project(project_name string) {
-	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?);", project_name, project_name, "", "", 0, "open")
+	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?,?);", project_name, project_name, "", "", 0, "open")
 	if err != nil {
 		logger.Error("INSERT project list error: " + err.Error())
 	}

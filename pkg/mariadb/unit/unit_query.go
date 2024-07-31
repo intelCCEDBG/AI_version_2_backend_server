@@ -21,3 +21,22 @@ func Get_unitbyhostname(hostname string) structure.Unit {
 	}
 	return unit_template
 }
+
+func Export_all_to_csv() {
+	_, err := method.Query("SELECT * FROM debug_unit INTO OUTFILE '/home/jimmy/multi_streaming_recorder/cmd/backend/upload/debug_unit.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';")
+	if err != nil {
+		logger.Error("Export all units to csv error: " + err.Error())
+	}
+	_, err = method.Query("SELECT * FROM kvm INTO OUTFILE 'upload/kvm.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';")
+	if err != nil {
+		logger.Error("Export all units to csv error: " + err.Error())
+	}
+	_, err = method.Query("SELECT * FROM debug_host INTO OUTFILE 'upload/dbg.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';")
+	if err != nil {
+		logger.Error("Export all units to csv error: " + err.Error())
+	}
+	_, err = method.Query("SELECT * FROM machine INTO OUTFILE 'upload/dut.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n';")
+	if err != nil {
+		logger.Error("Export all units to csv error: " + err.Error())
+	}
+}

@@ -114,3 +114,13 @@ func Take_photo(save_path string, target structure.Kvm) error {
 	}
 	return err
 }
+
+func Renew_small_picture(target structure.Kvm) error {
+	image_path := config.Viper.GetString("IMAGE_PATH") + target.Hostname + "/"
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.Stream_url, "-vf", "scale=320:180", "-vframes", "1", image_path+"cover.png")
+	err := cmd.Run()
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	return err
+}

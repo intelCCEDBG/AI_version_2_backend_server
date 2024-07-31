@@ -99,7 +99,7 @@ func monitor_start_signal() {
 			}
 			start_process()
 		}
-		time.Sleep(2 * time.Second)
+		// time.Sleep(2 * time.Second)
 	}
 }
 func servershutdown(Connection_close chan int) {

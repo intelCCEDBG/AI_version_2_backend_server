@@ -21,6 +21,8 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	kvm_query "recorder/pkg/mariadb/kvm"
+	project_query "recorder/pkg/mariadb/project"
+	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/rabbitmq"
 	"recorder/pkg/redis"
 	"strconv"
@@ -57,6 +59,8 @@ func Process_AI_result(hostname string, machine_name string) {
 	// sta := dut_query.Get_dut_status(unit.Machine_name)
 	key := redis.Redis_get_by_pattern("kvm:" + hostname + ":holding")
 	if len(key) != 0 {
+		dut_query.Update_dut_cnt(machine_name, 0)
+		dut_query.Update_dut_cnt_high(machine_name, 0)
 		return
 	}
 	KVM := kvm_query.Get_kvm_status(hostname)
@@ -95,26 +99,52 @@ func Process_AI_result(hostname string, machine_name string) {
 		return
 	}
 	dut_info := dut_query.Get_dut_status(machine_name)
+	unit := unit_query.Get_unitbyhostname(hostname)
+	upper_bound := project_query.Get_upper_bound(unit.Project)
+	if dut_info.Lock_coord == "" {
+		return
+	}
+	if ssim_result*100 >= float64(upper_bound) {
+		dut_query.Update_dut_cnt_high(machine_name, dut_info.Cycle_cnt_high+1)
+		dut_info.Cycle_cnt_high++
+	} else {
+		dut_info.Cycle_cnt_high -= 2
+		if (dut_info.Cycle_cnt_high) < 0 {
+			dut_info.Cycle_cnt_high = 0
+		}
+		dut_query.Update_dut_cnt_high(machine_name, dut_info.Cycle_cnt_high)
+	}
 	if ssim_result*100 >= dut_info.Ssim {
 		// logger.Info("Freeze: " + hostname)
 		dut_query.Update_dut_cnt(machine_name, dut_info.Cycle_cnt+1)
 		dut_info.Cycle_cnt++
 	} else {
 		dut_query.Update_dut_cnt(machine_name, 1)
-		dut_query.Update_dut_status(hostname, 4)
+		dut_query.Update_dut_cnt_high(machine_name, 0)
+		dut_query.Update_dut_status(machine_name, 4)
+		return
 	}
-	if dut_info.Cycle_cnt == dut_info.Threshhold*12 {
-		// dut_query.Update_dut_status(hostname, 4)
-		freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
+	if (Ai_result.Label == 1 || Ai_result.Label == 2) && dut_info.Cycle_cnt > dut_info.Threshhold*12 {
+		set_error_type(machine_name, Ai_result.Label)
+		if dut_info.Status == 4 {
+			freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
+		}
 	}
-	// logger.Debug("SSIM result: " + strconv.FormatFloat(ssim_result, 'f', 6, 64))
-	// }
+	if (Ai_result.Label == 0 || Ai_result.Label == 3) && dut_info.Cycle_cnt > dut_info.Threshhold*12 && dut_info.Cycle_cnt_high > dut_info.Threshhold*10 {
+		dut_query.Update_dut_status(machine_name, Ai_result.Label)
+		if dut_info.Status == 4 {
+			freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
+		}
+	}
 	if Ai_result.Label == 2 {
 		//todo: handle restart type
 	}
 }
 func freeze_process(machine_name string, errortype int, kvm structure.Kvm, threshold int) {
 	logger.Info("Machine " + machine_name + " Fail !")
+	if errortype == 2 || errortype == 4 {
+		errortype = 3
+	}
 	Machine_status := dut_query.Get_machine_status(machine_name)
 	error_record := create_new_error_record(machine_name, strconv.Itoa(errortype), Machine_status)
 	currentTime := time.Now()
@@ -126,7 +156,8 @@ func freeze_process(machine_name string, errortype int, kvm structure.Kvm, thres
 	current_picture_path := config.Viper.GetString("logimage_path") + machine_name + "/current.png"
 	ffmpeg.Take_photo(current_picture_path, kvm)
 	project := dut_query.Get_project_code(machine_name)
-	dut_query.Set_dut_status_from_kvm(errortype, kvm)
+	// dut_query.Set_dut_status_from_kvm(errortype, kvm)
+	ffmpeg.Renew_small_picture(kvm)
 	emailfunction.Send_alert_mail(machine_name, project, errortype)
 }
 func copyFileFromQueue(machine_name string) {
@@ -195,4 +226,10 @@ func create_new_error_record(machine_name string, errortype string, machine_stat
 	errorlog.Uuid = uuid.New().String()
 	errorlog_query.Set_error_record(errorlog)
 	return errorlog
+}
+func set_error_type(machine_name string, errortype int) {
+	if errortype == 2 || errortype == 4 {
+		errortype = 3
+	}
+	dut_query.Update_dut_status(machine_name, errortype)
 }

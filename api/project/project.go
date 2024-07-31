@@ -251,12 +251,37 @@ func Get_Report_State(c *gin.Context) {
 }
 func Add_new_project(c *gin.Context) {
 	project := c.Query("project")
-	create_new_project(project)
+	codename := c.Query("codename")
+	create_new_project(project, codename)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func create_new_project(project_name string) {
-	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?, ?);", project_name, project_name, "", "", 0, "open")
+func create_new_project(project_name string, codename string) {
+	_, err := method.Exec("INSERT INTO project (project_name, short_name, owner,  email_list, status, freeze_detection) VALUES (?, ?, ?, ?, ?, ?);", project_name, codename, "", "", 0, "open")
 	if err != nil {
 		logger.Error("INSERT project error: " + err.Error())
 	}
+}
+func Get_ssim_and_threshold(c *gin.Context) {
+	project := c.Query("project")
+	Resp := project_query.Get_ssim_and_threshold(project)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+}
+func Update_ssim_and_threshold(c *gin.Context) {
+	var Resp structure.Ssim_and_threshold
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		logger.Error("Read ssim and threshold request error: " + err.Error())
+	}
+	err = json.Unmarshal(body, &Resp)
+	if err != nil {
+		logger.Error("Parse ssim and threshold request error: " + err.Error())
+	}
+	project_query.Update_ssim_and_threshold(Resp)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+func Delete_project(c *gin.Context) {
+	project := c.Query("project")
+	project_query.Delete_project(project)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }

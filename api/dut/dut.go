@@ -11,6 +11,7 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	"recorder/pkg/mariadb/method"
+	project_query "recorder/pkg/mariadb/project"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,30 +78,13 @@ func Dut_freelist(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
 }
 func Dut_all_info(c *gin.Context) {
-	var Dut_info_list []Dut
-	rows, err := method.Query("SELECT * FROM machine;")
-	if err != nil {
-		logger.Error("Search all dut info error: " + err.Error())
-	}
-	for rows.Next() {
-		var tmp Dut
-		err = rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path, &tmp.Threshold)
-		if err != nil {
-			logger.Error("Search all dut info error: " + err.Error())
-		}
-		Dut_info_list = append(Dut_info_list, tmp)
-	}
+	Dut_info_list := dut_query.Get_all_dut_status()
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_info_list)
 }
 
 func Dut_info(c *gin.Context) {
 	machine := c.Query("machine")
-	rows := method.QueryRow("SELECT * FROM machine WHERE machine_name=?", machine)
-	var tmp Dut
-	err := rows.Scan(&tmp.Machine_name, &tmp.Ssim, &tmp.Status, &tmp.Cycle_cnt, &tmp.Error_timestamp, &tmp.Path, &tmp.Threshold)
-	if err != nil {
-		logger.Error("Search dut information error: " + err.Error())
-	}
+	tmp := dut_query.Get_dut_status(machine)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
@@ -168,6 +152,12 @@ func Dut_errorlog(c *gin.Context) {
 	res := errorlog_query.Get_all_error(machine_name)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
+func Set_dut_errorlog(c *gin.Context) {
+	var errorlog structure.Errorlog
+	c.BindJSON(&errorlog)
+	errorlog_query.Set_error_record(errorlog)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
 func Dut_deleteerrorlog(c *gin.Context) {
 	machine_name := c.Query("machine_name")
 	path := config.Viper.GetString("ERROR_VIDEO_PATH")
@@ -177,6 +167,22 @@ func Dut_deleteerrorlog(c *gin.Context) {
 		logger.Error("Delete error video error: " + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
+}
+func Dut_deleteerrorlog_project(c *gin.Context) {
+	project := c.Query("project")
+	path := config.Viper.GetString("ERROR_VIDEO_PATH")
+	duts := project_query.Get_duts(project)
+	var rows int64
+	rows = 0
+	for _, dut := range duts {
+		res := errorlog_query.Delete_all_error(dut.Machine_name)
+		rows += res
+		err := fileoperation.DeleteFiles(path + dut.Machine_name + "/")
+		if err != nil {
+			logger.Error("Delete error video error: " + err.Error())
+		}
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, rows)
 }
 func Project_dut_list(c *gin.Context) {
 	var Dut_list Dutlist_Response
@@ -195,4 +201,10 @@ func Project_dut_list(c *gin.Context) {
 		Dut_list.Machine_name = tmp
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+}
+func Set_dut_machine_status(c *gin.Context) {
+	var machine_status structure.Machine_status
+	c.ShouldBind(&machine_status)
+	dut_query.Set_machine_status(machine_status)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }

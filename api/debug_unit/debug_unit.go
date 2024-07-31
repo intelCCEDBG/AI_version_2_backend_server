@@ -5,6 +5,7 @@ import (
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb/method"
+	unit_query "recorder/pkg/mariadb/unit"
 
 	"github.com/gin-gonic/gin"
 	// "fmt"
@@ -22,6 +23,7 @@ type Debug_unit_info struct {
 	Lock_coord    string `json:"lock_coord"`
 	Status        string `json:"status"`
 	Debug_host    string `json:"debug_host"`
+	Last_fail     string `json:"last_fail"`
 }
 
 type Project_info_response struct {
@@ -30,13 +32,16 @@ type Project_info_response struct {
 
 func Project_list(c *gin.Context) {
 	var Project_list Project_list_response
-	rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
+	rows, err := method.Query("SELECT project_name FROM project;")
 	if err != nil {
 		logger.Error("Query project list error: " + err.Error())
 	}
 	for rows.Next() {
 		var tmp string
 		err = rows.Scan(&tmp)
+		if err != nil {
+			logger.Error("Query project list error: " + err.Error())
+		}
 		Project_list.Project = append(Project_list.Project, tmp)
 	}
 
@@ -56,6 +61,9 @@ func Project_info(c *gin.Context) {
 		for rows.Next() {
 			var tmp string
 			err = rows.Scan(&tmp)
+			if err != nil {
+				logger.Error("Search all project info error: " + err.Error())
+			}
 			Project_list = append(Project_list, tmp)
 		}
 		for _, pj := range Project_list {
@@ -78,6 +86,11 @@ func Project_info(c *gin.Context) {
 				err = row.Scan(&tmp.Record_status, &tmp.KVM_link)
 				if err != nil {
 					logger.Error("Search project info error: " + err.Error())
+				}
+				row = method.QueryRow("select time from errorlog where machine_name=? order by time desc limit 1", &tmp.Machine_name)
+				err = row.Scan(&tmp.Last_fail)
+				if err != nil {
+					tmp.Last_fail = "N/A"
 				}
 				Resp2.Duts = append(Resp2.Duts, tmp)
 			}
@@ -107,9 +120,19 @@ func Project_info(c *gin.Context) {
 			if err != nil {
 				logger.Error("Search project info error: " + err.Error())
 			}
+			row = method.QueryRow("select time from errorlog where machine_name=? order by time desc limit 1", &tmp.Machine_name)
+			err = row.Scan(&tmp.Last_fail)
+			if err != nil {
+				tmp.Last_fail = "N/A"
+			}
 			tmp2 = append(tmp2, tmp)
 		}
 		Resp.Duts = tmp2
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+}
+
+func Save_csv(c *gin.Context) {
+	unit_query.Export_all_to_csv()
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "OK")
 }
