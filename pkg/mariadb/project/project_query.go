@@ -8,6 +8,7 @@ import (
 	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/mariadb/method"
 	"strings"
+	"time"
 )
 
 func Update_project_setting(setting structure.Project_setting_Tamplate, Email_string string) {
@@ -169,4 +170,19 @@ func Delete_project(project string) {
 	if err != nil {
 		logger.Error("Delete project error: " + err.Error())
 	}
+}
+func Add_start_time(project string) {
+	_, err := method.Exec("UPDATE project SET start_time = ? WHERE project_name = ?", time.Now().Format("2006-01-02 15:04:05"), project)
+	if err != nil {
+		logger.Error("INSERT project error: " + err.Error())
+	}
+}
+func Get_start_time(project string) string {
+	var start_time string
+	row := method.QueryRow("SELECT start_time from project where project_name = ?", project)
+	err := row.Scan(&start_time)
+	if err != nil {
+		logger.Error("Reading start time error: " + err.Error())
+	}
+	return start_time
 }

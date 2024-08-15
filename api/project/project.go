@@ -285,3 +285,9 @@ func Delete_project(c *gin.Context) {
 	project_query.Delete_project(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
+
+func Getstarttime(c *gin.Context) {
+	project := c.Query("project")
+	Resp := project_query.Get_start_time(project)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+}

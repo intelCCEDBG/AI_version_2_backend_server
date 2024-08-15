@@ -7,10 +7,10 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"net/http"
 	"os"
 	"recorder/config"
 	"recorder/internal/cropping"
-	emailfunction "recorder/internal/email_function"
 	"recorder/internal/ffmpeg"
 	"recorder/internal/logpicqueue"
 	"recorder/internal/ssim"
@@ -19,6 +19,7 @@ import (
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
+	email_query "recorder/pkg/mariadb/email"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	kvm_query "recorder/pkg/mariadb/kvm"
 	project_query "recorder/pkg/mariadb/project"
@@ -55,21 +56,21 @@ func Start_ai_monitoring(ctx context.Context) {
 }
 
 func Process_AI_result(hostname string, machine_name string) {
-	// unit := unit_query.Get_unitbyhostname(hostname)
-	// sta := dut_query.Get_dut_status(unit.Machine_name)
 	key := redis.Redis_get_by_pattern("kvm:" + hostname + ":holding")
 	if len(key) != 0 {
 		dut_query.Update_dut_cnt(machine_name, 0)
 		dut_query.Update_dut_cnt_high(machine_name, 0)
+		dut_query.Update_dut_status(machine_name, 4)
 		return
 	}
 	KVM := kvm_query.Get_kvm_status(hostname)
 	Ai_result := dut_query.Get_AI_result(machine_name)
-	if Ai_result.Hostname == "null" {
+	if Ai_result.Hostname == "null" { // if no hostname
 		logger.Debug("Machine " + machine_name + " not found in database. ") //This may happens when camera did not catch anything.
 		return
 	}
-	if len(Ai_result.Coords) == 0 {
+	if len(Ai_result.Coords) == 0 { // if unlocked
+		dut_query.Update_dut_status(machine_name, 4)
 		return
 	}
 	slow_path := config.Viper.GetString("slow_path")
@@ -85,10 +86,6 @@ func Process_AI_result(hostname string, machine_name string) {
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	// if Ai_result.Label == 0 {
-	// 	dut_query.Update_dut_status(machine_name, 0)
-	// 	dut_query.Update_dut_cnt(machine_name, 0)
-	// } else {
 	if !fileoperation.FileExists(cropped_path + hostname + "_cropped_old.png") {
 		return
 	}
@@ -99,16 +96,16 @@ func Process_AI_result(hostname string, machine_name string) {
 		return
 	}
 	dut_info := dut_query.Get_dut_status(machine_name)
-	unit := unit_query.Get_unitbyhostname(hostname)
-	upper_bound := project_query.Get_upper_bound(unit.Project)
-	if dut_info.Lock_coord == "" {
+	if len(dut_info.Lock_coord) == 0 {
 		return
 	}
+	unit := unit_query.Get_unitbyhostname(hostname)
+	upper_bound := project_query.Get_upper_bound(unit.Project)
 	if ssim_result*100 >= float64(upper_bound) {
 		dut_query.Update_dut_cnt_high(machine_name, dut_info.Cycle_cnt_high+1)
 		dut_info.Cycle_cnt_high++
 	} else {
-		dut_info.Cycle_cnt_high -= 2
+		dut_info.Cycle_cnt_high -= 3
 		if (dut_info.Cycle_cnt_high) < 0 {
 			dut_info.Cycle_cnt_high = 0
 		}
@@ -158,7 +155,20 @@ func freeze_process(machine_name string, errortype int, kvm structure.Kvm, thres
 	project := dut_query.Get_project_code(machine_name)
 	// dut_query.Set_dut_status_from_kvm(errortype, kvm)
 	ffmpeg.Renew_small_picture(kvm)
-	emailfunction.Send_alert_mail(machine_name, project, errortype)
+	Send_alert_mail(machine_name, project, errortype, project)
+}
+func Send_alert_mail(machine_name string, code string, errortype int, project string) {
+	Ip := config.Viper.GetString("email_server_ip")
+	Port := config.Viper.GetString("email_port")
+	start_time := project_query.Get_start_time(project)
+	status := email_query.Get_email_threestrike_status(code)
+	times := errorlog_query.Get_error_count_after_time(machine_name, start_time)
+	if (status == 1 && times < 4) || status == 0 {
+		_, err := http.Get("http://" + Ip + ":" + Port + "/api/mail/send_alert?project=" + code + "&machine_name=" + machine_name + "&type=" + strconv.Itoa(errortype))
+		if err != nil {
+			logger.Error(err.Error())
+		}
+	}
 }
 func copyFileFromQueue(machine_name string) {
 	logpicqueue.BlockLogPicChannel(machine_name)

@@ -25,6 +25,7 @@ import (
 	dut_query "recorder/pkg/mariadb/dut"
 	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/mariadb/method"
+	project_query "recorder/pkg/mariadb/project"
 	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/redis"
 
@@ -613,6 +614,7 @@ func Kvm_status(c *gin.Context) {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
 				var stream_status string
 				_ = row.Scan(&stream_status)
+				//todo: handle fail case
 				if stream_status == "recording" {
 					break
 				} else {
@@ -687,7 +689,7 @@ func Kvm_genminutevideo(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Project_status(c *gin.Context) {
+func Project_status(c *gin.Context) { //start entry point
 	body, _ := io.ReadAll(c.Request.Body)
 	var Req Proj_exec
 	_ = json.Unmarshal(body, &Req)
@@ -722,6 +724,7 @@ func Project_status(c *gin.Context) {
 			// 	logger.Error(err.Error())
 			// }
 		}
+		project_query.Add_start_time(Req.Project)
 		wg.Wait()
 	} else if Req.Operation == "stop" {
 		rows, err := method.Query("SELECT hostname FROM debug_unit WHERE project=?", Req.Project)

@@ -106,6 +106,7 @@ func Start_backend() {
 	router.GET("/api/project/ssim_threshold", project.Get_ssim_and_threshold)
 	router.POST("/api/project/ssim_threshold", project.Update_ssim_and_threshold)
 	router.OPTIONS("/api/project/ssim_threshold", project.Update_ssim_and_threshold)
+	router.GET("/api/project/getstarttime", project.Getstarttime)
 
 	router.GET("/api/system/CPU", system.Get_CPU_status)
 

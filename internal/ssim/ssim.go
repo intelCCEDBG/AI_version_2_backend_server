@@ -2,6 +2,7 @@ package ssim
 
 import (
 	"image"
+	"image/png"
 	"os"
 )
 
@@ -11,7 +12,7 @@ func Ssim_cal(image1 string, image2 string) (float64, error) {
 		return 0.0, err
 	}
 	defer img1File.Close()
-	img1RGB, _, err := image.Decode(img1File)
+	img1RGB, err := png.Decode(img1File)
 	if err != nil {
 		return 0.0, err
 	}
@@ -20,7 +21,7 @@ func Ssim_cal(image1 string, image2 string) (float64, error) {
 		return 0.0, err
 	}
 	defer img2File.Close()
-	img2RGB, _, err := image.Decode(img2File)
+	img2RGB, err := png.Decode(img2File)
 	if err != nil {
 		return 0.0, err
 	}

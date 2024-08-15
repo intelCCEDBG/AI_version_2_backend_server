@@ -1,10 +1,7 @@
 package emailfunction
 
 import (
-	"net/http"
-	"recorder/config"
 	"recorder/internal/structure"
-	"recorder/pkg/logger"
 	"strconv"
 	"strings"
 )
@@ -34,13 +31,4 @@ func Email_to_string(List []structure.Email_tamplate) string {
 		}
 	}
 	return Email_list
-}
-func Send_alert_mail(machine_name string, code string, errortype int) {
-	Ip := config.Viper.GetString("email_server_ip")
-	Port := config.Viper.GetString("email_port")
-	_, err := http.Get("http://" + Ip + ":" + Port + "/api/mail/send_alert?project=" + code + "&machine_name=" + machine_name + "&type=" + strconv.Itoa(errortype))
-	if err != nil {
-		logger.Error(err.Error())
-	}
-
 }
