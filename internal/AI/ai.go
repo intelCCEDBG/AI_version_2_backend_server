@@ -90,7 +90,6 @@ func Process_AI_result(hostname string, machine_name string) {
 		return
 	}
 	ssim_result, err := ssim.Ssim_cal(cropped_path+hostname+"_cropped.png", cropped_path+hostname+"_cropped_old.png")
-
 	if err != nil {
 		logger.Error(err.Error())
 		return
@@ -147,15 +146,16 @@ func freeze_process(machine_name string, errortype int, kvm structure.Kvm, thres
 	currentTime := time.Now()
 	// threshold*=-1
 	freezetime := currentTime.Add(time.Duration((threshold+2)*-1) * time.Minute)
-	logger.Info(freezetime.String())
+	// logger.Info(freezetime.String())
 	videogen.GenerateErrorVideo(freezetime.Hour(), freezetime.Minute(), 180, kvm.Hostname, machine_name, error_record.Uuid)
 	copyFileFromQueue(machine_name)
 	current_picture_path := config.Viper.GetString("logimage_path") + machine_name + "/current.png"
 	ffmpeg.Take_photo(current_picture_path, kvm)
-	project := dut_query.Get_project_code(machine_name)
+	code := dut_query.Get_project_code(machine_name)
+	project := dut_query.Get_project_name(machine_name)
 	// dut_query.Set_dut_status_from_kvm(errortype, kvm)
 	ffmpeg.Renew_small_picture(kvm)
-	Send_alert_mail(machine_name, project, errortype, project)
+	Send_alert_mail(machine_name, code, errortype, project)
 }
 func Send_alert_mail(machine_name string, code string, errortype int, project string) {
 	Ip := config.Viper.GetString("email_server_ip")
