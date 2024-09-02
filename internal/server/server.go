@@ -14,7 +14,7 @@ import (
 func Start_server() {
 	fmt.Println("Starting server...")
 	config.LoadConfig()
-	logger.InitLogger(config.Viper.GetString("LOG_FILE_PATH"))
+	logger.InitLogger(config.Viper.GetString("RECORDER_LOG_FILE_PATH"))
 	err := mariadb.ConnectDB()
 	if err != nil {
 		logger.Error("Connect to mariadb error: " + err.Error())
@@ -35,7 +35,6 @@ func folder_check() {
 	for _, value := range paths {
 		createFolderIfNotExist(value)
 	}
-
 }
 
 func createFolderIfNotExist(folderPath string) error {

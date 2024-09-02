@@ -1,7 +1,10 @@
 package router
 
 import (
+	"io"
+	"os"
 	"recorder/config"
+	"recorder/pkg/logger"
 
 	dbghost_api "recorder/api/debug_host"
 	dbgunit_api "recorder/api/debug_unit"
@@ -11,22 +14,18 @@ import (
 	"recorder/api/project"
 	"recorder/api/system"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func Start_backend() {
 	// init setup
+	gin.SetMode(gin.ReleaseMode)
+	f, _ := os.Create(config.Viper.GetString("API_GIN_LOG_FILE"))
+	gin.DefaultWriter = io.MultiWriter(f)
 	router := gin.Default()
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowMethods = []string{"*"}
-	corsConfig.AllowHeaders = []string{"*"}
 	router.RedirectFixedPath = true
 	router.Use(corsMiddleware())
-	// router.Use(cors.New(corsConfig))
-
-	Port := config.Viper.GetString("SERVER_PORT")
+	router.Use(logger.GinLog())
 
 	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
 
@@ -110,21 +109,20 @@ func Start_backend() {
 
 	router.GET("/api/system/CPU", system.Get_CPU_status)
 	router.POST("/api/export/all", dbgunit_api.Save_csv)
-
 	router.POST("/api/freezecheck", dut_api.FreezeCheck)
-	router.Run(":" + Port)
+
+	port := config.Viper.GetString("SERVER_PORT")
+	router.Run(":" + port)
 }
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
 		}
-
 		c.Next()
 	}
 }

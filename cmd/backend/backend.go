@@ -15,7 +15,7 @@ func main() {
 	redis.Redis_init()
 	// fmt.Println(a)
 	// redis.Redis_set("kvm:1","123")
-	logger.InitLogger(config.Viper.GetString("LOG_FILE_PATH"))
+	logger.InitLogger(config.Viper.GetString("API_LOG_FILE_PATH"))
 	err := mariadb.ConnectDB()
 	if err != nil {
 		logger.Error("Connect to mariadb error: " + err.Error())
