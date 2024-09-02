@@ -1,8 +1,10 @@
 package dut_api
 
 import (
+	"fmt"
 	"net/http"
 	"recorder/config"
+	ai "recorder/internal/AI"
 	"recorder/internal/logpicqueue"
 	"recorder/internal/structure"
 	apiservice "recorder/pkg/apiservice"
@@ -10,6 +12,7 @@ import (
 	"recorder/pkg/logger"
 	dut_query "recorder/pkg/mariadb/dut"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
+	kvm_query "recorder/pkg/mariadb/kvm"
 	"recorder/pkg/mariadb/method"
 	project_query "recorder/pkg/mariadb/project"
 
@@ -207,4 +210,29 @@ func Set_dut_machine_status(c *gin.Context) {
 	c.ShouldBind(&machine_status)
 	dut_query.Set_machine_status(machine_status)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+type freezeCheckRequest struct {
+	MachineName string    `json:"dut"`
+	Hostname    string    `json:"kvm"`
+	Coords      []float64 `json:"coords"`
+}
+
+func FreezeCheck(c *gin.Context) {
+	var req freezeCheckRequest
+	c.BindJSON(&req)
+	logger.Info("FreezeCheck request: " + fmt.Sprintf("%+v", req))
+	kvm := kvm_query.Get_kvm_status(req.Hostname)
+	freezed, err := ai.FreezeCheck(req.MachineName, req.Coords, kvm)
+	if err != nil {
+		apiservice.ResponseWithJson(c.Writer, http.StatusInternalServerError, err.Error())
+		return
+	}
+	msg := ""
+	if freezed {
+		msg = "Freezed"
+	} else {
+		msg = "Not Freezed"
+	}
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, msg)
 }

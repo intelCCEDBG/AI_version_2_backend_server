@@ -109,10 +109,10 @@ func Start_backend() {
 	router.GET("/api/project/getstarttime", project.Getstarttime)
 
 	router.GET("/api/system/CPU", system.Get_CPU_status)
-
 	router.POST("/api/export/all", dbgunit_api.Save_csv)
-	router.Run(":" + Port)
 
+	router.POST("/api/freezecheck", dut_api.FreezeCheck)
+	router.Run(":" + Port)
 }
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

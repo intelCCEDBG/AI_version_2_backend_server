@@ -252,7 +252,7 @@ func checkMappingFile(data [][]string) (bool, string) {
 	}
 	allKeys := make(map[string]bool)
 	for _, item := range check_hostname {
-		if allKeys[item] == true {
+		if allKeys[item] {
 			var resp string = "Duplicate kvm mapping: " + item
 			return false, resp
 		}
@@ -262,7 +262,7 @@ func checkMappingFile(data [][]string) (bool, string) {
 	}
 	allKeys = make(map[string]bool)
 	for _, item := range check_ip {
-		if allKeys[item] == true {
+		if allKeys[item] {
 			var resp string = "Duplicate dbghost mapping" + item
 			return false, resp
 		}
@@ -272,7 +272,7 @@ func checkMappingFile(data [][]string) (bool, string) {
 	}
 	allKeys = make(map[string]bool)
 	for _, item := range check_machine {
-		if allKeys[item] == true {
+		if allKeys[item] {
 			var resp string = "Duplicate dut mapping" + item
 			return false, resp
 		}
@@ -528,6 +528,9 @@ func Kvm_csv_mapping(c *gin.Context) {
 	file_list := [4]string{"dutfile", "kvmfile", "dbgfile", "mapfile"}
 	for _, fileName := range file_list {
 		file, header, err := c.Request.FormFile(fileName)
+		if err != nil {
+			logger.Error(err.Error())
+		}
 		filename := header.Filename
 		out, err := os.Create("./upload/" + filename)
 		if err != nil {
@@ -551,12 +554,15 @@ func Kvm_csv_mapping(c *gin.Context) {
 	}
 
 	result, result_mesg := checkMappingFile(data)
-	fmt.Printf(result_mesg)
+	fmt.Println(result_mesg)
 	if !result {
 		apiservice.ResponseWithJson(c.Writer, http.StatusBadRequest, result_mesg)
 		return
 	}
 	_, err = method.Exec("DELETE FROM debug_unit")
+	if err != nil {
+		logger.Error(err.Error())
+	}
 
 	//import csv file to db
 	Kvm_csv2db()
@@ -588,10 +594,6 @@ func Kvm_status(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 		return
 	} else if action == "update" {
-		// _, err := method.Exec("UPDATE kvm SET stream_status=? WHERE hostname=?",Req.Stream_status, Req.Hostname)
-		// if err != nil{
-		// logger.Error("update kvm status error" + err.Error())
-		// }
 		var ip string
 		row := method.QueryRow("SELECT ip FROM kvm WHERE hostname=?", Req.Hostname)
 		err := row.Scan(&ip)
@@ -664,7 +666,6 @@ func Kvm_status(c *gin.Context) {
 
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "update successfully")
-
 }
 func Kvm_genvideo(c *gin.Context) {
 	var Req Video_info
@@ -703,6 +704,9 @@ func Project_status(c *gin.Context) { //start entry point
 			wg.Add(1)
 			var req Kvm_state
 			err = rows.Scan(&req.Hostname)
+			if err != nil {
+				logger.Error(err.Error())
+			}
 			req.Stream_status = "recording"
 			json_data, err := json.Marshal(req)
 			// logger.Info("Enter...")
@@ -718,11 +722,6 @@ func Project_status(c *gin.Context) { //start entry point
 				http.Post("http://127.0.0.1:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
 				// fmt.Println(Hostname)
 			}(Port, json_data, req.Hostname)
-			// req, err := http.NewRequest("POST", "http://10.227.106.11:"+Port+"/api/kvm/stream_status?action=update", bytes.NewReader(marshalled))
-
-			// if err != nil {
-			// 	logger.Error(err.Error())
-			// }
 		}
 		project_query.Add_start_time(Req.Project)
 		wg.Wait()
@@ -736,6 +735,9 @@ func Project_status(c *gin.Context) { //start entry point
 			wg.Add(1)
 			var req Kvm_state
 			err = rows.Scan(&req.Hostname)
+			if err != nil {
+				logger.Error(err.Error())
+			}
 			req.Stream_status = "idle"
 			json_data, err := json.Marshal(req)
 			if err != nil {
@@ -747,9 +749,6 @@ func Project_status(c *gin.Context) { //start entry point
 				defer wg.Done()
 				http.Post("http://127.0.0.1:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
 			}(Port, json_data)
-			// if err != nil {
-			// logger.Error(err.Error())
-			// }
 		}
 		wg.Wait()
 	}

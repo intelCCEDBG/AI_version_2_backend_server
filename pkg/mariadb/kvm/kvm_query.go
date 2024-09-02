@@ -180,3 +180,25 @@ func Get_kvm_message(hostname string) []string {
 	}
 	return Messages
 }
+
+func GetIP(hostname string) string {
+	IP := method.QueryRow("SELECT ip FROM kvm where hostname = ?", hostname)
+	var ip string
+	err := IP.Scan(&ip)
+	if err != nil {
+		logger.Error("Reading kvm error: " + err.Error())
+		return ""
+	}
+	return ip
+}
+
+func GetStreamStatus(hostname string) (string, error) {
+	Status := method.QueryRow("SELECT stream_status FROM kvm where hostname = ?", hostname)
+	var status string
+	err := Status.Scan(&status)
+	if err != nil {
+		logger.Error("Reading kvm error: " + err.Error())
+		return "", err
+	}
+	return status, nil
+}

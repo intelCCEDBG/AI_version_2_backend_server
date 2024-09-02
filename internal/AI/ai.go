@@ -129,7 +129,13 @@ func Process_AI_result(hostname string, machine_name string) {
 	if (Ai_result.Label == 0 || Ai_result.Label == 3) && dut_info.Cycle_cnt > dut_info.Threshhold*12 && dut_info.Cycle_cnt_high > dut_info.Threshhold*10 {
 		dut_query.Update_dut_status(machine_name, Ai_result.Label)
 		if dut_info.Status == 4 {
-			freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
+			freezed, err := FreezeCheck(machine_name, Ai_result.Coords, KVM)
+			if err != nil {
+				logger.Error("Error doing windows key freeze check: " + err.Error())
+			}
+			if freezed {
+				freeze_process(machine_name, Ai_result.Label, KVM, dut_info.Threshhold)
+			}
 		}
 	}
 	if Ai_result.Label == 2 {
