@@ -10,11 +10,11 @@ type ApiResponse struct {
 	ResultMessage interface{}
 }
 
-type Debug_unit struct {
-	Hostname     string `json:"kvm_hostname"`
-	Ip           string `json:"dbghost_ip"`
-	Machine_name string `json:"dut_machine"`
-	Project      string `json:"project"`
+type DebugUnit struct {
+	Hostname    string `json:"kvm_hostname"`
+	Ip          string `json:"dbghost_ip"`
+	MachineName string `json:"dut_machine"`
+	Project     string `json:"project"`
 }
 
 func ResponseWithJson(w http.ResponseWriter, status_code int, payload interface{}) {

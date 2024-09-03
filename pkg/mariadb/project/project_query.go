@@ -60,7 +60,7 @@ func Get_all_Floor() map[string]int {
 	}
 	return Floors
 }
-func Get_duts(project string) []structure.DUT {
+func GetDuts(project string) []structure.DUT {
 	Dut, err := method.Query("SELECT machine_name FROM debug_unit where project=?", project)
 	if err != nil {
 		logger.Error("Query dut from project error: " + err.Error())

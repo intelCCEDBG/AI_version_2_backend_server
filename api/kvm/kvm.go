@@ -159,9 +159,9 @@ func Kvm_info(c *gin.Context) {
 
 func Kvm_search(c *gin.Context) {
 	hostname := c.Query("hostname")
-	var res apiservice.Debug_unit
+	var res apiservice.DebugUnit
 	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE hostname=?", hostname)
-	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.MachineName)
 	if err != nil {
 		logger.Error("Search kvm mapping error" + err.Error())
 	}
@@ -173,7 +173,7 @@ func Kvm_mapping(c *gin.Context) {
 	if err != nil {
 		logger.Error("Read kvm mapping request error: " + err.Error())
 	}
-	var Req apiservice.Debug_unit
+	var Req apiservice.DebugUnit
 	err = json.Unmarshal(body, &Req)
 	if err != nil {
 		logger.Error("Parse kvm mapping request error: " + err.Error())
@@ -201,7 +201,7 @@ func Kvm_mapping(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusForbidden, "")
 		return
 	}
-	row = method.QueryRow("SELECT count(*) FROM debug_unit WHERE machine_name=?", Req.Machine_name)
+	row = method.QueryRow("SELECT count(*) FROM debug_unit WHERE machine_name=?", Req.MachineName)
 	var exist3 int
 	err = row.Scan(&exist3)
 	if err != nil {
@@ -212,7 +212,7 @@ func Kvm_mapping(c *gin.Context) {
 		apiservice.ResponseWithJson(c.Writer, http.StatusForbidden, "")
 		return
 	}
-	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name, project) VALUES (?, ?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.Machine_name, Req.Project)
+	_, err = method.Exec("INSERT INTO debug_unit ( uuid, hostname, ip, machine_name, project) VALUES (?, ?, ?, ?, ?);", uuid, Req.Hostname, Req.Ip, Req.MachineName, Req.Project)
 	if err != nil {
 		logger.Error("insert kvm mapping error: " + err.Error())
 	}

@@ -64,8 +64,13 @@ func ProcessAIResult(hostname string, machineName string) {
 		dut_query.UpdateDutStatus(machineName, 4)
 		return
 	}
+	// see if the kvm is checking (pressing windows key)
+	key = redis.RedisGetByPattern("kvm:" + hostname + ":checking")
+	if len(key) != 0 {
+		return
+	}
 	KVM := kvm_query.GetKvmStatus(hostname)
-	AIResult := dut_query.GetAIResult(machineName)
+	AIResult := dut_query.GetAiResult(machineName)
 	if AIResult.Hostname == "null" { // if no hostname
 		logger.Debug("Machine " + machineName + " not found in database. ") //This may happen when camera did not catch anything.
 		return
@@ -118,48 +123,49 @@ func ProcessAIResult(hostname string, machineName string) {
 		dut_query.UpdateDutCycleCnt(machineName, dutInfo.CycleCnt+1)
 		dutInfo.CycleCnt++
 	} else {
-		dut_query.UpdateDutCycleCnt(machineName, 1)
+		dut_query.UpdateDutCycleCnt(machineName, 0)
 		dut_query.UpdateDutCycleCntHigh(machineName, 0)
-		dut_query.UpdateDutStatus(machineName, 4)
 		return
 	}
 
 	// Label 0: BSOD 1: BLACK 2: RESTART 3: NORMAL
 	// Status 0: BSOD 1: BLACK 2: RESTART 3: FREEZE 4: NORMAL
 	switch AIResult.Label {
+	case structure.BSOD_LABEL:
+		dut_query.UpdateDutStatus(machineName, structure.BSOD)
+		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+			logger.Debug("Machine " + machineName + " Freeze Detected, Status: BSOD")
+			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
+		}
 	case structure.BLACK_LABEL:
 		dut_query.UpdateDutStatus(machineName, structure.BLACK)
-		if dutInfo.CycleCnt > dutInfo.Threshhold*12 {
-			if dutInfo.Status == structure.NORMAL {
-				freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
-			}
+		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+			logger.Debug("Machine " + machineName + " Freeze Detected, Status: BLACK")
+			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
 		}
 	case structure.RESTART_LABEL:
-		if dutInfo.CycleCnt > dutInfo.Threshhold*12 {
+		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+			logger.Debug("Machine " + machineName + " Freeze Detected, Status: RESTART")
 			dut_query.UpdateDutStatus(machineName, structure.FREEZE)
-			if dutInfo.Status == structure.NORMAL {
-				freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshhold)
+			freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshhold)
+		}
+	case structure.NORMAL_LABEL:
+		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+		if dutInfo.CycleCnt == dutInfo.Threshhold*12 && dutInfo.CycleCntHigh > dutInfo.Threshhold*10 {
+			logger.Warn("Machine " + machineName + " Windows Key Freeze Check!")
+			freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
+			if err != nil {
+				logger.Error("Error doing windows key freeze check: " + err.Error())
 			}
-		}
-	case structure.BSOD_LABEL, structure.NORMAL_LABEL:
-		if AIResult.Label == structure.BSOD_LABEL {
-			dut_query.UpdateDutStatus(machineName, structure.BSOD)
-		}
-		if dutInfo.CycleCnt > dutInfo.Threshhold*12 && dutInfo.CycleCntHigh > dutInfo.Threshhold*10 {
-			dut_query.UpdateDutStatus(machineName, AIResult.Label)
-			if dutInfo.Status == structure.NORMAL {
-				logger.Warn("Machine " + machineName + "Windows Key Freeze Check!")
-				freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
-				if err != nil {
-					logger.Error("Error doing windows key freeze check: " + err.Error())
-				}
-				if freezed {
-					freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
-				} else {
-					dut_query.UpdateDutCycleCnt(machineName, 1)
-					dut_query.UpdateDutCycleCntHigh(machineName, 0)
-					dut_query.UpdateDutStatus(machineName, structure.NORMAL)
-				}
+			if freezed {
+				logger.Debug("Machine " + machineName + " Freeze Detected, Status: NORMAL")
+				dut_query.UpdateDutStatus(machineName, structure.FREEZE)
+				freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
+			} else {
+				logger.Warn("Machine " + machineName + " Recovered From Press Windows Key")
+				dut_query.UpdateDutCycleCnt(machineName, 0)
+				dut_query.UpdateDutCycleCntHigh(machineName, 0)
 			}
 		}
 	}
@@ -260,7 +266,7 @@ func createNewErrorRecord(machineName string, errortype string, machineStatus st
 	errorlog.Image = machineStatus.Image
 	errorlog.Bios = machineStatus.Bios
 	errorlog.Uuid = uuid.New().String()
-	errorlog_query.Set_error_record(errorlog)
+	errorlog_query.SetErrorRecord(errorlog)
 	return errorlog
 }
 

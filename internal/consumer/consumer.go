@@ -37,7 +37,7 @@ func Start_consumer() {
 		if err != nil {
 			logger.Error(err.Error())
 		} else {
-			dut_query.Update_AI_result(data.Hostname, data.Label, data.Coords)
+			dut_query.UpdateAIResult(data.Hostname, data.Label, data.Coords)
 			// logger.Info("Received from AI: " + data.Hostname)
 		}
 	}

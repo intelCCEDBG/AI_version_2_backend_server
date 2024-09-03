@@ -19,8 +19,8 @@ func FreezeCheck(machineName string, coords []float64, KVM structure.Kvm) (bool,
 	freezed := true
 	ip := kvm_query.GetIP(KVM.Hostname)
 	// press windows key
-	redis.RedisSet("kvm:"+KVM.Hostname+":holding", KVM.Hostname)
-	defer redis.RedisDel("kvm:" + KVM.Hostname + ":holding")
+	redis.RedisSet("kvm:"+KVM.Hostname+":checking", KVM.Hostname)
+	defer redis.RedisDel("kvm:" + KVM.Hostname + ":checking")
 	// take a picture
 	unpressedImagePath := config.Viper.GetString("LOGIMAGE_PATH") + machineName + "/unpressed.png"
 	ffmpeg.TakePhoto(unpressedImagePath, KVM)

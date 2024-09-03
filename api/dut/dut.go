@@ -19,35 +19,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Dutlist_Response struct {
-	Machine_name []string `json:"machines"`
+type DutListResponse struct {
+	MachineName []string `json:"machines"`
 }
-type Lock_Response struct {
+type LockResponse struct {
 	Locked int       `json:"locked"`
 	Coord  []float64 `json:"coord"`
 }
 type Dut struct {
-	Machine_name    string `json:"machine"`
-	Ssim            int    `json:"ssim"`
-	Status          int    `json:"status"`
-	Cycle_cnt       int    `json:"cycle_cnt"`
-	Error_timestamp string `json:"error_timestamp"`
-	Path            string `json:"path"`
-	Threshold       int    `json:"threshold"`
+	MachineName    string `json:"machine"`
+	Ssim           int    `json:"ssim"`
+	Status         int    `json:"status"`
+	CycleCnt       int    `json:"cycle_cnt"`
+	ErrorTimestamp string `json:"error_timestamp"`
+	Path           string `json:"path"`
+	Threshold      int    `json:"threshold"`
 }
 
-func Dut_list(c *gin.Context) {
+func DutList(c *gin.Context) {
 	extra := c.Query("extra")
-	var Dut_list Dutlist_Response
+	var DutList DutListResponse
 	if extra == "empty" {
 		rows, err := method.Query("SELECT machine_name FROM machine WHERE NOT EXISTS(SELECT 1 FROM debug_unit WHERE machine.machine_name=debug_unit.machine_name);")
 		if err != nil {
-			logger.Error("Query empty dut list error: " + err.Error())
+			logger.Error("Query dut list error: " + err.Error())
 		}
 		for rows.Next() {
 			var tmp string
 			err = rows.Scan(&tmp)
-			Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+			if err != nil {
+				logger.Error("Query dut list error: " + err.Error())
+			}
+			DutList.MachineName = append(DutList.MachineName, tmp)
 		}
 	} else {
 		rows, err := method.Query("SELECT machine_name FROM machine")
@@ -57,14 +60,17 @@ func Dut_list(c *gin.Context) {
 		for rows.Next() {
 			var tmp string
 			err = rows.Scan(&tmp)
-			Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+			if err != nil {
+				logger.Error("Query dut list error: " + err.Error())
+			}
+			DutList.MachineName = append(DutList.MachineName, tmp)
 		}
 	}
-
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, DutList)
 }
-func Dut_freelist(c *gin.Context) {
-	var Dut_list Dutlist_Response
+
+func DutFreeList(c *gin.Context) {
+	var DutList DutListResponse
 	rows, err := method.Query("SELECT A.machine_name FROM machine A LEFT JOIN debug_unit C ON A.machine_name = C.machine_name WHERE C.machine_name IS NULL;")
 	if err != nil {
 		logger.Error("Query empty dut list error: " + err.Error())
@@ -72,65 +78,72 @@ func Dut_freelist(c *gin.Context) {
 	for rows.Next() {
 		var tmp string
 		err = rows.Scan(&tmp)
-		Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+		if err != nil {
+			logger.Error("Query empty dut list error: " + err.Error())
+		}
+		DutList.MachineName = append(DutList.MachineName, tmp)
 	}
-	if Dut_list.Machine_name == nil {
+	if DutList.MachineName == nil {
 		tmp := []string{}
-		Dut_list.Machine_name = tmp
+		DutList.MachineName = tmp
 	}
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
-}
-func Dut_all_info(c *gin.Context) {
-	Dut_info_list := dut_query.Get_all_dut_status()
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_info_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, DutList)
 }
 
-func Dut_info(c *gin.Context) {
+func DutAllInfo(c *gin.Context) {
+	DutInfoList := dut_query.GetAllDutStatus()
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, DutInfoList)
+}
+
+func DutInfo(c *gin.Context) {
 	machine := c.Query("machine")
 	tmp := dut_query.GetDutStatus(machine)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
-func Dut_search(c *gin.Context) {
-	machine_name := c.Query("machine")
-	var res apiservice.Debug_unit
-	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE machine_name=?", machine_name)
-	err := row.Scan(&res.Hostname, &res.Ip, &res.Machine_name)
+func DutSearch(c *gin.Context) {
+	machineName := c.Query("machine")
+	var res apiservice.DebugUnit
+	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE machine_name=?", machineName)
+	err := row.Scan(&res.Hostname, &res.Ip, &res.MachineName)
 	if err != nil {
 		logger.Error("Search dut mapping error" + err.Error())
 	}
-	res.Project = dut_query.GetProjectName(machine_name)
+	res.Project = dut_query.GetProjectName(machineName)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 
-func Dut_modify(c *gin.Context) {
-	machine_name := c.Query("machine")
+func DutModify(c *gin.Context) {
+	machineName := c.Query("machine")
 	ssim := c.Query("ssim")
 	threshold := c.Query("threshold")
-	_, err := method.Exec("UPDATE machine SET ssim=?, threshold=? WHERE machine_name=?", ssim, threshold, machine_name)
+	_, err := method.Exec("UPDATE machine SET ssim=?, threshold=? WHERE machine_name=?", ssim, threshold, machineName)
 	if err != nil {
 		logger.Error("Search dut mapping error" + err.Error())
 		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
 		return
 	}
-	logpicqueue.RenewThreshold(machine_name)
+	logpicqueue.RenewThreshold(machineName)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Dut_lock_coord(c *gin.Context) {
-	machine_name := c.Query("machine")
-	result := dut_query.GetAIResult(machine_name)
-	coord_str := structure.CoordF2S(result.Coords)
-	logger.Debug(coord_str)
-	dut_query.Update_lock_coord(machine_name, coord_str)
+
+func DutLockCoord(c *gin.Context) {
+	machineName := c.Query("machine")
+	result := dut_query.GetAiResult(machineName)
+	coordStr := structure.CoordF2S(result.Coords)
+	logger.Debug(coordStr)
+	dut_query.UpdateLockCoord(machineName, coordStr)
 }
-func Dut_unlock_coord(c *gin.Context) {
-	machine_name := c.Query("machine")
-	dut_query.Update_lock_coord(machine_name, "")
+
+func DutUnlockCoord(c *gin.Context) {
+	machineName := c.Query("machine")
+	dut_query.UpdateLockCoord(machineName, "")
 }
-func Dut_islocked(c *gin.Context) {
-	machine_name := c.Query("machine")
-	dut := dut_query.GetDutStatus(machine_name)
-	var tmp Lock_Response
+
+func DutIslocked(c *gin.Context) {
+	machineName := c.Query("machine")
+	dut := dut_query.GetDutStatus(machineName)
+	var tmp LockResponse
 	if dut.LockCoord == "" {
 		tmp.Locked = 0
 	} else {
@@ -139,7 +152,8 @@ func Dut_islocked(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
-func Dut_status(c *gin.Context) {
+
+func DutStatus(c *gin.Context) {
 	hostname := c.Query("hostname")
 	status := c.Query("status")
 	_, err := method.Exec("UPDATE machine SET status=? WHERE machine_name = (SELECT machine_name FROM debug_unit WHERE hostname=?)", status, hostname)
@@ -150,35 +164,39 @@ func Dut_status(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Dut_errorlog(c *gin.Context) {
-	machine_name := c.Query("machine_name")
-	res := errorlog_query.Get_all_error(machine_name)
+
+func DutErrorlog(c *gin.Context) {
+	machineName := c.Query("machine_name")
+	res := errorlog_query.GetAllError(machineName)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
-func Set_dut_errorlog(c *gin.Context) {
+
+func SetDutErrorlog(c *gin.Context) {
 	var errorlog structure.Errorlog
 	c.BindJSON(&errorlog)
-	errorlog_query.Set_error_record(errorlog)
+	errorlog_query.SetErrorRecord(errorlog)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Dut_deleteerrorlog(c *gin.Context) {
-	machine_name := c.Query("machine_name")
+
+func DutDeleteErrorlog(c *gin.Context) {
+	machineName := c.Query("machine_name")
 	path := config.Viper.GetString("ERROR_VIDEO_PATH")
-	res := errorlog_query.Delete_all_error(machine_name)
-	err := fileoperation.DeleteFiles(path + machine_name + "/")
+	res := errorlog_query.DeleteAllError(machineName)
+	err := fileoperation.DeleteFiles(path + machineName + "/")
 	if err != nil {
 		logger.Error("Delete error video error: " + err.Error())
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
-func Dut_deleteerrorlog_project(c *gin.Context) {
+
+func DutDeleteErrorlogProject(c *gin.Context) {
 	project := c.Query("project")
 	path := config.Viper.GetString("ERROR_VIDEO_PATH")
-	duts := project_query.Get_duts(project)
+	duts := project_query.GetDuts(project)
 	var rows int64
 	rows = 0
 	for _, dut := range duts {
-		res := errorlog_query.Delete_all_error(dut.MachineName)
+		res := errorlog_query.DeleteAllError(dut.MachineName)
 		rows += res
 		err := fileoperation.DeleteFiles(path + dut.MachineName + "/")
 		if err != nil {
@@ -187,28 +205,33 @@ func Dut_deleteerrorlog_project(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, rows)
 }
-func Project_dut_list(c *gin.Context) {
-	var Dut_list Dutlist_Response
-	project_name := c.Query("project")
-	rows, err := method.Query("SELECT machine_name FROM debug_unit WHERE project=?;", project_name)
+
+func ProjectDutList(c *gin.Context) {
+	var DutList DutListResponse
+	projectName := c.Query("project")
+	rows, err := method.Query("SELECT machine_name FROM debug_unit WHERE project=?;", projectName)
 	if err != nil {
 		logger.Error("Query dut list by project error: " + err.Error())
 	}
 	for rows.Next() {
 		var tmp string
 		err = rows.Scan(&tmp)
-		Dut_list.Machine_name = append(Dut_list.Machine_name, tmp)
+		if err != nil {
+			logger.Error("Query dut list by project error: " + err.Error())
+		}
+		DutList.MachineName = append(DutList.MachineName, tmp)
 	}
-	if Dut_list.Machine_name == nil {
+	if DutList.MachineName == nil {
 		tmp := []string{}
-		Dut_list.Machine_name = tmp
+		DutList.MachineName = tmp
 	}
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, DutList)
 }
-func Set_dut_machine_status(c *gin.Context) {
-	var machine_status structure.MachineStatus
-	c.ShouldBind(&machine_status)
-	dut_query.Set_machine_status(machine_status)
+
+func SetDutMachineStatus(c *gin.Context) {
+	var machineStatus structure.MachineStatus
+	c.ShouldBind(&machineStatus)
+	dut_query.SetMachineStatus(machineStatus)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 

@@ -53,7 +53,7 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		}
 		// TODO: handle error
 	}
-	dut_query.Set_dut_status_from_kvm(4, mh)
+	dut_query.SetDutStatusFromKvm(4, mh)
 	reso := "scale=320:180"
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-r", "3", "-y", "-i", url,
 		"-codec", "libx264", "-preset", "ultrafast", "-g", "30", "-f", "hls", "-hls_time", "10", "-hls_list_size", "0", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
