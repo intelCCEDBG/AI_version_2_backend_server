@@ -8,12 +8,13 @@ import (
 	"time"
 )
 
-func Update_dut_status(machine_name string, status int) {
-	_, err := method.Exec("UPDATE machine SET status = ? WHERE machine_name = ?", status, machine_name)
+func UpdateDutStatus(machineName string, status int) {
+	_, err := method.Exec("UPDATE machine SET status = ? WHERE machine_name = ?", status, machineName)
 	if err != nil {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
+
 func Update_AI_result(machine_name string, status int64, coords []float64) {
 	coords_str := ""
 	for i := 0; i < len(coords); i++ {
@@ -28,7 +29,7 @@ func Update_AI_result(machine_name string, status int64, coords []float64) {
 		logger.Error("Update AI result error: " + err.Error())
 	}
 }
-func Get_AI_result(machine_name string) (result structure.AI_result) {
+func GetAIResult(machine_name string) (result structure.AiResult) {
 	Result, err := method.Query("SELECT status, coords FROM ai_result WHERE machine_name = ?", machine_name)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
@@ -45,17 +46,17 @@ func Get_AI_result(machine_name string) (result structure.AI_result) {
 		dataExist = true
 	}
 	if !dataExist {
-		return structure.AI_result{
+		return structure.AiResult{
 			Hostname: "null",
 		}
 	}
-	var ai_result structure.AI_result
+	var ai_result structure.AiResult
 	ai_result.Hostname = machine_name
 	ai_result.Label = status
-	ai_result.Coords = structure.Coord_s2f(coords_str)
+	ai_result.Coords = structure.CoordS2F(coords_str)
 	return ai_result
 }
-func Get_project_name(machine_name string) string {
+func GetProjectName(machine_name string) string {
 	Result, err := method.Query("SELECT project_name FROM debug_unit JOIN project ON debug_unit.project=project.project_name where debug_unit.machine_name = ?", machine_name)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
@@ -69,7 +70,7 @@ func Get_project_name(machine_name string) string {
 	}
 	return Project
 }
-func Get_project_code(machine_name string) string {
+func GetProjectCode(machine_name string) string {
 	Result := method.QueryRow("SELECT short_name FROM debug_unit JOIN project ON debug_unit.project=project.project_name where debug_unit.machine_name = ?", machine_name)
 	var Project string
 	err := Result.Scan(&Project)
@@ -78,32 +79,35 @@ func Get_project_code(machine_name string) string {
 	}
 	return Project
 }
-func Update_dut_cnt(machine_name string, cnt int) {
-	_, err := method.Exec("UPDATE machine SET cycle_cnt = ? WHERE machine_name = ?", cnt, machine_name)
+
+func UpdateDutCycleCnt(machineName string, cnt int) {
+	_, err := method.Exec("UPDATE machine SET cycle_cnt = ? WHERE machine_name = ?", cnt, machineName)
 	if err != nil {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
-func Update_dut_cnt_high(machine_name string, cnt int) {
-	_, err := method.Exec("UPDATE machine SET cycle_cnt_high = ? WHERE machine_name = ?", cnt, machine_name)
+
+func UpdateDutCycleCntHigh(machineName string, cnt int) {
+	_, err := method.Exec("UPDATE machine SET cycle_cnt_high = ? WHERE machine_name = ?", cnt, machineName)
 	if err != nil {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
+
 func Update_lock_coord(machine_name string, coord string) {
 	_, err := method.Exec("UPDATE machine SET lock_coord = ? WHERE machine_name = ?", coord, machine_name)
 	if err != nil {
 		logger.Error("Update DUT status error: " + err.Error())
 	}
 }
-func Get_dut_status(machine_name string) (dut_template structure.DUT) {
+func GetDutStatus(machine_name string) (dut_template structure.DUT) {
 	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,cycle_cnt_high, status,threshold,lock_coord FROM machine where machine_name = " + "'" + machine_name + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}
-	dut_template.Machine_name = "null"
+	dut_template.MachineName = "null"
 	for KVM.Next() {
-		err := KVM.Scan(&dut_template.Machine_name, &dut_template.Ssim, &dut_template.Cycle_cnt, &dut_template.Cycle_cnt_high, &dut_template.Status, &dut_template.Threshhold, &dut_template.Lock_coord)
+		err := KVM.Scan(&dut_template.MachineName, &dut_template.Ssim, &dut_template.CycleCnt, &dut_template.CycleCntHigh, &dut_template.Status, &dut_template.Threshhold, &dut_template.LockCoord)
 		if err != nil {
 			logger.Error(err.Error())
 			return dut_template
@@ -119,7 +123,7 @@ func Get_all_dut_status() (dut_template []structure.DUT) {
 	}
 	for KVM.Next() {
 		var dut structure.DUT
-		err := KVM.Scan(&dut.Machine_name, &dut.Ssim, &dut.Cycle_cnt, &dut.Cycle_cnt_high, &dut.Status, &dut.Threshhold, &dut.Lock_coord)
+		err := KVM.Scan(&dut.MachineName, &dut.Ssim, &dut.CycleCnt, &dut.CycleCntHigh, &dut.Status, &dut.Threshhold, &dut.LockCoord)
 		if err != nil {
 			logger.Error(err.Error())
 			return dut_template
@@ -144,19 +148,19 @@ func Set_dut_status_from_kvm(status int, kvm structure.Kvm) {
 		return
 	}
 }
-func Get_machine_status(machine_name string) (machine_status structure.Machine_status) {
+func GetMachineStatus(machine_name string) (machine_status structure.MachineStatus) {
 	KVM, err := method.Query("SELECT machine_name,test_item,sku,image,bios FROM machine_status where machine_name = " + "'" + machine_name + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machine_name + " error: " + err.Error())
 	}
-	machine_status.Machine_name = machine_name
+	machine_status.MachineName = machine_name
 	machine_status.Bios = "null"
 	machine_status.Image = "null"
 	machine_status.Sku = "null"
-	machine_status.Test_item = "null"
+	machine_status.TestItem = "null"
 
 	for KVM.Next() {
-		err := KVM.Scan(&machine_status.Machine_name, &machine_status.Test_item, &machine_status.Sku, &machine_status.Image, &machine_status.Bios)
+		err := KVM.Scan(&machine_status.MachineName, &machine_status.TestItem, &machine_status.Sku, &machine_status.Image, &machine_status.Bios)
 		if err != nil {
 			logger.Error(err.Error())
 			return machine_status
@@ -164,8 +168,8 @@ func Get_machine_status(machine_name string) (machine_status structure.Machine_s
 	}
 	return machine_status
 }
-func Set_machine_status(machine_status structure.Machine_status) {
-	_, err := method.Exec("REPLACE INTO machine_status (machine_name,test_item,sku, image, bios, config) VALUES (?, ?, ?, ?, ?, ?)", machine_status.Machine_name, machine_status.Test_item, machine_status.Sku, machine_status.Image, machine_status.Bios, machine_status.Config)
+func Set_machine_status(machine_status structure.MachineStatus) {
+	_, err := method.Exec("REPLACE INTO machine_status (machine_name,test_item,sku, image, bios, config) VALUES (?, ?, ?, ?, ?, ?)", machine_status.MachineName, machine_status.TestItem, machine_status.Sku, machine_status.Image, machine_status.Bios, machine_status.Config)
 	if err != nil {
 		logger.Error("update dut status error" + err.Error())
 		return

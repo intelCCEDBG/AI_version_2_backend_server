@@ -72,7 +72,7 @@ func Publish(queue string, body []byte) error {
 	)
 }
 
-func Publish_with_expiration(queue string, body []byte, expiratioln string) error {
+func PublishWithExpiration(queue string, body []byte, expiratioln string) error {
 	if channel == nil {
 		return errors.New("failed to publish message: channel is nil")
 	}

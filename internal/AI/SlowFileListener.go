@@ -59,9 +59,9 @@ func FS_monitor_slow(ctx context.Context) {
 				filename := filepath.Base(event.Name)
 				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
-				unit := unit_query.Get_unitbyhostname(hostname)
+				unit := unit_query.GetUnitByHostname(hostname)
 				slowdebounceEvent(hostname, 1200*time.Millisecond, func() {
-					Process_AI_result(hostname, unit.Machine_name)
+					ProcessAIResult(hostname, unit.MachineName)
 				})
 			}
 		case err, ok := <-watcher.Errors:

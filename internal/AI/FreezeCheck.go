@@ -19,11 +19,11 @@ func FreezeCheck(machineName string, coords []float64, KVM structure.Kvm) (bool,
 	freezed := true
 	ip := kvm_query.GetIP(KVM.Hostname)
 	// press windows key
-	redis.Redis_set("kvm:"+KVM.Hostname+":holding", KVM.Hostname)
-	defer redis.Redis_del("kvm:" + KVM.Hostname + ":holding")
+	redis.RedisSet("kvm:"+KVM.Hostname+":holding", KVM.Hostname)
+	defer redis.RedisDel("kvm:" + KVM.Hostname + ":holding")
 	// take a picture
 	unpressedImagePath := config.Viper.GetString("LOGIMAGE_PATH") + machineName + "/unpressed.png"
-	ffmpeg.Take_photo(unpressedImagePath, KVM)
+	ffmpeg.TakePhoto(unpressedImagePath, KVM)
 	// press windows key
 	err := kvm.PressWindowsKey(ip)
 	if err != nil {
@@ -33,19 +33,19 @@ func FreezeCheck(machineName string, coords []float64, KVM structure.Kvm) (bool,
 	time.Sleep(1 * time.Second)
 	// take a picture
 	pressedImagePath := config.Viper.GetString("LOGIMAGE_PATH") + machineName + "/pressed.png"
-	ffmpeg.Take_photo(pressedImagePath, KVM)
+	ffmpeg.TakePhoto(pressedImagePath, KVM)
 	// calculate ssim
-	_, err = cropping.Crop_image(unpressedImagePath, coords, unpressedImagePath)
+	_, err = cropping.CropImage(unpressedImagePath, coords, unpressedImagePath)
 	if err != nil {
 		logger.Error("Error cropping image: " + err.Error())
 		return freezed, err
 	}
-	_, err = cropping.Crop_image(pressedImagePath, coords, pressedImagePath)
+	_, err = cropping.CropImage(pressedImagePath, coords, pressedImagePath)
 	if err != nil {
 		logger.Error("Error cropping image: " + err.Error())
 		return freezed, err
 	}
-	ssimResult, err := ssim.Ssim_cal(pressedImagePath, unpressedImagePath)
+	ssimResult, err := ssim.SsimCal(pressedImagePath, unpressedImagePath)
 	if err != nil {
 		logger.Error("Error calculating SSIM: " + err.Error())
 		return freezed, err

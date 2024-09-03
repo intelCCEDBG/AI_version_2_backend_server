@@ -22,7 +22,7 @@ func Start_consumer() {
 		return
 	}
 	rabbitmq.Rabbit_init()
-	redis.Redis_init()
+	redis.RedisInit()
 	queue, err := rabbitmq.Consume("result_queue")
 	for err != nil {
 		logger.Error(err.Error())
@@ -31,7 +31,7 @@ func Start_consumer() {
 		queue, err = rabbitmq.Consume("result_queue")
 	}
 	for msg := range queue {
-		var data structure.Result_message
+		var data structure.ResultMessage
 		fmt.Println(string(msg.Body[:]))
 		err := json.Unmarshal(msg.Body, &data)
 		if err != nil {

@@ -60,10 +60,10 @@ func FS_monitor_ramdisk(ctx context.Context) {
 				filename := filepath.Base(event.Name)
 				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
-				unit := unit_query.Get_unitbyhostname(hostname)
-				sta := dut_query.Get_dut_status(unit.Machine_name)
+				unit := unit_query.GetUnitByHostname(hostname)
+				sta := dut_query.GetDutStatus(unit.MachineName)
 				debounceEvent(hostname, 500*time.Millisecond, func() {
-					Send_to_rabbitMQ(unit.Hostname, unit.Machine_name, sta.Lock_coord, ramdisk_path+filename, "2000")
+					SendToRabbitMQ(unit.Hostname, unit.MachineName, sta.LockCoord, ramdisk_path+filename, "2000")
 				})
 			}
 		case err, ok := <-watcher.Errors:

@@ -12,7 +12,7 @@ import (
 func main() {
 	fmt.Println("Starting server...")
 	config.LoadConfig()
-	redis.Redis_init()
+	redis.RedisInit()
 	// fmt.Println(a)
 	// redis.Redis_set("kvm:1","123")
 	logger.InitLogger(config.Viper.GetString("API_LOG_FILE_PATH"))

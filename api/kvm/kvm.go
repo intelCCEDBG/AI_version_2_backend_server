@@ -80,7 +80,7 @@ type Kvm_state struct {
 
 type Proj_exec struct {
 	Project   string `json:"project"`
-	Operation string `json:"operation`
+	Operation string `json:"operation"`
 }
 
 type KVM_floor struct {
@@ -610,7 +610,7 @@ func Kvm_status(c *gin.Context) {
 				logger.Error(err.Error())
 			}
 			fmt.Println("Enter Redis")
-			redis.Redis_set("kvm:"+Req.Hostname+":recording", Req.Hostname)
+			redis.RedisSet("kvm:"+Req.Hostname+":recording", Req.Hostname)
 			fmt.Println("finish writing")
 			for {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
@@ -632,7 +632,7 @@ func Kvm_status(c *gin.Context) {
 			}
 			client := &http.Client{Transport: tr}
 			_, err := client.Get("https://" + ip + ":8443/api/switch_mode?mode=kvmd")
-			redis.Redis_set("kvm:"+Req.Hostname+":stop", Req.Hostname)
+			redis.RedisSet("kvm:"+Req.Hostname+":stop", Req.Hostname)
 			fmt.Println("finish writing", Req.Hostname)
 			for {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
@@ -648,7 +648,7 @@ func Kvm_status(c *gin.Context) {
 				logger.Error("update send switch mode request to kvm error" + err.Error())
 			}
 		} else if Req.Stream_status == "error" {
-			redis.Redis_set("kvm:"+Req.Hostname+":error", Req.Hostname)
+			redis.RedisSet("kvm:"+Req.Hostname+":error", Req.Hostname)
 			for {
 				row = method.QueryRow("SELECT stream_status FROM kvm WHERE hostname=?", Req.Hostname)
 				var stream_status string
@@ -710,8 +710,8 @@ func Project_status(c *gin.Context) { //start entry point
 			req.Stream_status = "recording"
 			json_data, err := json.Marshal(req)
 			// logger.Info("Enter...")
-			unit := unit_query.Get_unitbyhostname(req.Hostname)
-			dut_query.Clean_Cycle_Count(unit.Machine_name)
+			unit := unit_query.GetUnitByHostname(req.Hostname)
+			dut_query.Clean_Cycle_Count(unit.MachineName)
 			if err != nil {
 				logger.Error(err.Error())
 			}

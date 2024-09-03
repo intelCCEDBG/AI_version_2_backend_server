@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func Ssim_cal(image1 string, image2 string) (float64, error) {
+func SsimCal(image1 string, image2 string) (float64, error) {
 	img1File, err := os.Open(image1)
 	if err != nil {
 		return 0.0, err

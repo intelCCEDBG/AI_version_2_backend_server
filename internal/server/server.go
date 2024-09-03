@@ -21,9 +21,9 @@ func Start_server() {
 		return
 	}
 	// loadstatus.Loadstatus()
-	redis.Redis_init()
-	redis.Redis_set("test", "test")
-	redis.Redis_clear()
+	redis.RedisInit()
+	redis.RedisSet("test", "test")
+	redis.RedisClear()
 	rabbitmq.Rabbit_init()
 	folder_check()
 	// go loadstatus.Sync_with_mariadb()

@@ -11,27 +11,27 @@ import (
 	"time"
 )
 
-func Update_project_setting(setting structure.Project_setting_Tamplate, Email_string string) {
-	_, err := method.Exec("UPDATE project SET short_name = ?, owner=?, email_list=? WHERE project_name = ?", setting.Short_name, setting.Owner, Email_string, setting.Project_name)
+func Update_project_setting(setting structure.ProjectSettingTemplate, Email_string string) {
+	_, err := method.Exec("UPDATE project SET short_name = ?, owner=?, email_list=? WHERE project_name = ?", setting.ShortName, setting.Owner, Email_string, setting.ProjectName)
 	if err != nil {
 		logger.Error("Update project status error: " + err.Error())
 	}
 }
-func Get_all_projects_setting() []structure.Project_setting_Tamplate {
+func Get_all_projects_setting() []structure.ProjectSettingTemplate {
 	Project, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project")
 	if err != nil {
 		logger.Error("Query all project error: " + err.Error())
 	}
-	var project_list []structure.Project_setting_Tamplate
+	var project_list []structure.ProjectSettingTemplate
 	for Project.Next() {
-		var project_setting structure.Project_setting_Tamplate
+		var project_setting structure.ProjectSettingTemplate
 		var email_string string
-		err := Project.Scan(&project_setting.Project_name, &project_setting.Short_name, &project_setting.Owner, &email_string)
+		err := Project.Scan(&project_setting.ProjectName, &project_setting.ShortName, &project_setting.Owner, &email_string)
 		if err != nil {
 			logger.Error(err.Error())
 			return project_list
 		}
-		project_setting.Email_list = emailfunction.String_to_Email(email_string)
+		project_setting.EmailList = emailfunction.String_to_Email(email_string)
 		project_list = append(project_list, project_setting)
 	}
 	return project_list
@@ -73,7 +73,7 @@ func Get_duts(project string) []structure.DUT {
 			logger.Error(err.Error())
 			return DUTS
 		}
-		d := dut_query.Get_dut_status(Tmp)
+		d := dut_query.GetDutStatus(Tmp)
 		DUTS = append(DUTS, d)
 	}
 	return DUTS
@@ -91,7 +91,7 @@ func Get_kvms(project string) []structure.Kvm {
 			logger.Error(err.Error())
 			return KVMS
 		}
-		d := kvm_query.Get_kvm_status(Tmp)
+		d := kvm_query.GetKvmStatus(Tmp)
 		KVMS = append(KVMS, d)
 	}
 	return KVMS
@@ -109,14 +109,14 @@ func Get_dbgs(project string) []string {
 	}
 	return IPs
 }
-func Get_Units(project string) []structure.Unit_detail {
+func Get_Units(project string) []structure.UnitDetail {
 	Unit, err := method.Query("SELECT machine_name, hostname, ip FROM debug_unit where project=?", project)
 	if err != nil {
 		logger.Error("Query dut from project error: " + err.Error())
 	}
-	var UNITS []structure.Unit_detail
+	var UNITS []structure.UnitDetail
 	for Unit.Next() {
-		var unit structure.Unit_detail
+		var unit structure.UnitDetail
 		var Tmp, Tmp2, Tmp3 string
 		err = Unit.Scan(&Tmp, &Tmp2, &Tmp3)
 		if err != nil {
@@ -124,35 +124,35 @@ func Get_Units(project string) []structure.Unit_detail {
 			return UNITS
 		}
 		Detail := method.QueryRow("SELECT test_item, sku, image, bios, config FROM machine_status where machine_name=?", Tmp)
-		err = Detail.Scan(&unit.Test_item, &unit.Sku, &unit.Image, &unit.Bios, &unit.Config)
+		err = Detail.Scan(&unit.TestItem, &unit.Sku, &unit.Image, &unit.Bios, &unit.Config)
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		unit.Machine_name = dut_query.Get_dut_status(Tmp)
+		unit.MachineName = dut_query.GetDutStatus(Tmp)
 		unit.Ip = Tmp3
-		unit.Hostname = kvm_query.Get_kvm_status(Tmp2)
+		unit.Hostname = kvm_query.GetKvmStatus(Tmp2)
 		unit.Project = project
 		UNITS = append(UNITS, unit)
 	}
 	return UNITS
 }
-func Get_ssim_and_threshold(project string) structure.Ssim_and_threshold {
-	var Resp structure.Ssim_and_threshold
+func Get_ssim_and_threshold(project string) structure.SsimAndThreshold {
+	var Resp structure.SsimAndThreshold
 	row := method.QueryRow("SELECT A.ssim, A.threshold from machine A, debug_unit B WHERE B.project = ? && A.machine_name = B.machine_name limit 1;", project)
 	err := row.Scan(&Resp.Ssim, &Resp.Thresh)
-	Resp.Projet = project
+	Resp.Project = project
 	if err != nil {
 		logger.Error("Reading ssim status error: " + err.Error())
 	}
 	return Resp
 }
-func Update_ssim_and_threshold(Resp structure.Ssim_and_threshold) {
-	_, err := method.Exec("UPDATE machine A, debug_unit B SET A.ssim = ?, A.threshold = ? WHERE B.project = ? && A.machine_name = B.machine_name;", Resp.Ssim, Resp.Thresh, Resp.Projet)
+func Update_ssim_and_threshold(Resp structure.SsimAndThreshold) {
+	_, err := method.Exec("UPDATE machine A, debug_unit B SET A.ssim = ?, A.threshold = ? WHERE B.project = ? && A.machine_name = B.machine_name;", Resp.Ssim, Resp.Thresh, Resp.Project)
 	if err != nil {
 		logger.Error("Update ssim status error: " + err.Error())
 	}
 }
-func Get_upper_bound(project string) int {
+func GetUpperBound(project string) int {
 	var upper_bound int
 	row := method.QueryRow("SELECT upper_bound from project where project_name = ?", project)
 	err := row.Scan(&upper_bound)
@@ -177,7 +177,7 @@ func Add_start_time(project string) {
 		logger.Error("INSERT project error: " + err.Error())
 	}
 }
-func Get_start_time(project string) string {
+func GetStartTime(project string) string {
 	var start_time string
 	row := method.QueryRow("SELECT start_time from project where project_name = ?", project)
 	err := row.Scan(&start_time)

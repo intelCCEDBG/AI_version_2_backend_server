@@ -22,7 +22,7 @@ func init() {
 
 func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	hostname := mh.Hostname
-	url := mh.Stream_url
+	url := mh.StreamUrl
 	// unit := unit_query.Get_unitbyhostname(hostname)
 	// query.Update_kvm_status(hostname, "recording")
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
@@ -71,7 +71,7 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	// logger.Info("test1")
 	err = cmd.Start()
 	cmd2.Start()
-	mh.Start_record_time = time.Now().Unix()
+	mh.StartRecordTime = time.Now().Unix()
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -106,8 +106,8 @@ func Get_picture_from_video(ts string, frame_index string, image_path string) er
 	return err
 }
 
-func Take_photo(save_path string, target structure.Kvm) error {
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.Stream_url, "-vframes", "1", save_path)
+func TakePhoto(save_path string, target structure.Kvm) error {
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.StreamUrl, "-vframes", "1", save_path)
 	err := cmd.Run()
 	if err != nil {
 		logger.Error(err.Error())
@@ -115,9 +115,9 @@ func Take_photo(save_path string, target structure.Kvm) error {
 	return err
 }
 
-func Renew_small_picture(target structure.Kvm) error {
+func RenewSmallPicture(target structure.Kvm) error {
 	image_path := config.Viper.GetString("IMAGE_PATH") + target.Hostname + "/"
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.Stream_url, "-vf", "scale=320:180", "-vframes", "1", image_path+"cover.png")
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", target.StreamUrl, "-vf", "scale=320:180", "-vframes", "1", image_path+"cover.png")
 	err := cmd.Run()
 	if err != nil {
 		logger.Error(err.Error())

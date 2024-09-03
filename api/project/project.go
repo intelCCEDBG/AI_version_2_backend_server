@@ -50,40 +50,40 @@ type Report_State struct {
 }
 
 func Get_Project_setting(c *gin.Context) {
-	var Project_setting_out structure.Project_setting_Tamplate
+	var Project_setting_out structure.ProjectSettingTemplate
 	project_name := c.Query("project_name")
 	rows, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project WHERE project_name=?;", project_name)
 	if err != nil {
 		logger.Error("Query project setting error: " + err.Error())
-		Project_setting_out.Project_name = "Not Found"
+		Project_setting_out.ProjectName = "Not Found"
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 		return
 	}
 	for rows.Next() {
 		var Email_string string
-		err = rows.Scan(&Project_setting_out.Project_name, &Project_setting_out.Short_name, &Project_setting_out.Owner, &Email_string)
+		err = rows.Scan(&Project_setting_out.ProjectName, &Project_setting_out.ShortName, &Project_setting_out.Owner, &Email_string)
 		if err != nil {
 			logger.Error("Reading project setting error: " + err.Error())
 		}
-		Project_setting_out.Email_list = emailfunction.String_to_Email(Email_string)
+		Project_setting_out.EmailList = emailfunction.String_to_Email(Email_string)
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 }
 func Get_Project_setting_by_code(c *gin.Context) {
-	var Out_Email []structure.Email_tamplate
-	var Out_email_template structure.Email_tamplate
-	var Project_setting_out structure.Project_setting_Tamplate
+	var Out_Email []structure.EmailTemplate
+	var Out_email_template structure.EmailTemplate
+	var Project_setting_out structure.ProjectSettingTemplate
 	code := c.Query("short_name")
 	rows, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project WHERE short_name=?;", code)
 	if err != nil {
 		logger.Error("Query project setting error: " + err.Error())
-		Project_setting_out.Project_name = "Not Found"
+		Project_setting_out.ProjectName = "Not Found"
 		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 		return
 	}
 	for rows.Next() {
 		var Email_string string
-		err = rows.Scan(&Project_setting_out.Project_name, &Project_setting_out.Short_name, &Project_setting_out.Owner, &Email_string)
+		err = rows.Scan(&Project_setting_out.ProjectName, &Project_setting_out.ShortName, &Project_setting_out.Owner, &Email_string)
 		if err != nil {
 			logger.Error("Reading project setting error: " + err.Error())
 		}
@@ -97,13 +97,13 @@ func Get_Project_setting_by_code(c *gin.Context) {
 				Out_Email = append(Out_Email, Out_email_template)
 			}
 		}
-		Project_setting_out.Email_list = Out_Email
+		Project_setting_out.EmailList = Out_Email
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 }
 func Set_Project_setting(c *gin.Context) {
 	var Project_setting_in In_Project_tamplate
-	var Update_project_tamplate structure.Project_setting_Tamplate
+	var Update_project_tamplate structure.ProjectSettingTemplate
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Read project setting request error: " + err.Error())
@@ -113,15 +113,15 @@ func Set_Project_setting(c *gin.Context) {
 		logger.Error("Parse project setting request error: " + err.Error())
 	}
 	Email_string := emailfunction.Email_to_string(Email_list_merge(Project_setting_in))
-	Update_project_tamplate.Project_name = Project_setting_in.Project_name
+	Update_project_tamplate.ProjectName = Project_setting_in.Project_name
 	Update_project_tamplate.Owner = Project_setting_in.Owner
-	Update_project_tamplate.Short_name = Project_setting_in.Short_name
+	Update_project_tamplate.ShortName = Project_setting_in.Short_name
 	project_query.Update_project_setting(Update_project_tamplate, Email_string)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Email_list_merge(In_pakage In_Project_tamplate) []structure.Email_tamplate {
-	var List []structure.Email_tamplate
-	var user structure.Email_tamplate
+func Email_list_merge(In_pakage In_Project_tamplate) []structure.EmailTemplate {
+	var List []structure.EmailTemplate
+	var user structure.EmailTemplate
 	Uni := Union(In_pakage.Report_list, In_pakage.Alert_list)
 	for _, add := range Uni {
 		user.Account = add
@@ -267,7 +267,7 @@ func Get_ssim_and_threshold(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
 func Update_ssim_and_threshold(c *gin.Context) {
-	var Resp structure.Ssim_and_threshold
+	var Resp structure.SsimAndThreshold
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Read ssim and threshold request error: " + err.Error())
@@ -288,6 +288,6 @@ func Delete_project(c *gin.Context) {
 
 func Getstarttime(c *gin.Context) {
 	project := c.Query("project")
-	Resp := project_query.Get_start_time(project)
+	Resp := project_query.GetStartTime(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }

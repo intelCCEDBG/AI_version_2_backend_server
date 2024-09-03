@@ -87,7 +87,7 @@ func Dut_all_info(c *gin.Context) {
 
 func Dut_info(c *gin.Context) {
 	machine := c.Query("machine")
-	tmp := dut_query.Get_dut_status(machine)
+	tmp := dut_query.GetDutStatus(machine)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
@@ -99,7 +99,7 @@ func Dut_search(c *gin.Context) {
 	if err != nil {
 		logger.Error("Search dut mapping error" + err.Error())
 	}
-	res.Project = dut_query.Get_project_name(machine_name)
+	res.Project = dut_query.GetProjectName(machine_name)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 
@@ -118,8 +118,8 @@ func Dut_modify(c *gin.Context) {
 }
 func Dut_lock_coord(c *gin.Context) {
 	machine_name := c.Query("machine")
-	result := dut_query.Get_AI_result(machine_name)
-	coord_str := structure.Coord_f2s(result.Coords)
+	result := dut_query.GetAIResult(machine_name)
+	coord_str := structure.CoordF2S(result.Coords)
 	logger.Debug(coord_str)
 	dut_query.Update_lock_coord(machine_name, coord_str)
 }
@@ -129,13 +129,13 @@ func Dut_unlock_coord(c *gin.Context) {
 }
 func Dut_islocked(c *gin.Context) {
 	machine_name := c.Query("machine")
-	dut := dut_query.Get_dut_status(machine_name)
+	dut := dut_query.GetDutStatus(machine_name)
 	var tmp Lock_Response
-	if dut.Lock_coord == "" {
+	if dut.LockCoord == "" {
 		tmp.Locked = 0
 	} else {
 		tmp.Locked = 1
-		tmp.Coord = structure.Coord_s2f(dut.Lock_coord)
+		tmp.Coord = structure.CoordS2F(dut.LockCoord)
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
@@ -178,9 +178,9 @@ func Dut_deleteerrorlog_project(c *gin.Context) {
 	var rows int64
 	rows = 0
 	for _, dut := range duts {
-		res := errorlog_query.Delete_all_error(dut.Machine_name)
+		res := errorlog_query.Delete_all_error(dut.MachineName)
 		rows += res
-		err := fileoperation.DeleteFiles(path + dut.Machine_name + "/")
+		err := fileoperation.DeleteFiles(path + dut.MachineName + "/")
 		if err != nil {
 			logger.Error("Delete error video error: " + err.Error())
 		}
@@ -206,7 +206,7 @@ func Project_dut_list(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dut_list)
 }
 func Set_dut_machine_status(c *gin.Context) {
-	var machine_status structure.Machine_status
+	var machine_status structure.MachineStatus
 	c.ShouldBind(&machine_status)
 	dut_query.Set_machine_status(machine_status)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
@@ -222,7 +222,7 @@ func FreezeCheck(c *gin.Context) {
 	var req freezeCheckRequest
 	c.BindJSON(&req)
 	logger.Info("FreezeCheck request: " + fmt.Sprintf("%+v", req))
-	kvm := kvm_query.Get_kvm_status(req.Hostname)
+	kvm := kvm_query.GetKvmStatus(req.Hostname)
 	freezed, err := ai.FreezeCheck(req.MachineName, req.Coords, kvm)
 	if err != nil {
 		apiservice.ResponseWithJson(c.Writer, http.StatusInternalServerError, err.Error())

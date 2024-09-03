@@ -11,7 +11,7 @@ import (
 
 var RedisClient *redis.Client
 
-func Redis_init() *redis.Client {
+func RedisInit() *redis.Client {
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     config.Viper.GetString("REDIS_HOST") + ":" + config.Viper.GetString("REDIS_PORT"),
 		Password: config.Viper.GetString("REDIS_PASSWORD"),
@@ -25,30 +25,29 @@ func Redis_init() *redis.Client {
 	return RedisClient
 }
 
-func Redis_clear() {
+func RedisClear() {
 	statusCmd := RedisClient.FlushAll(context.Background())
 	if err := statusCmd.Err(); err != nil {
 		fmt.Println("Error flushing database:", err)
 		return
 	}
-
 	fmt.Println("All data flushed from the Redis database.")
 }
 
-func Redis_close() {
+func RedisClose() {
 	RedisClient.Close()
 }
 
-func Redis_set(key string, value string) {
+func RedisSet(key string, value string) {
 	RedisClient.Set(context.Background(), key, value, 0)
 }
 
-func Redis_get(key string) string {
+func RedisGet(key string) string {
 	val, _ := RedisClient.Get(context.Background(), key).Result()
 	return val
 }
 
-func Redis_get_by_pattern(pattern string) []string {
+func RedisGetByPattern(pattern string) []string {
 	val, err := RedisClient.Keys(context.Background(), pattern).Result()
 	if err != nil {
 		logger.Error("Search pattern in redis error: " + err.Error())
@@ -57,10 +56,10 @@ func Redis_get_by_pattern(pattern string) []string {
 	return val
 }
 
-func Redis_append(key string, value string) {
+func RedisAppend(key string, value string) {
 	RedisClient.Append(context.Background(), key, value)
 }
 
-func Redis_del(key string) {
+func RedisDel(key string) {
 	RedisClient.Del(context.Background(), key)
 }

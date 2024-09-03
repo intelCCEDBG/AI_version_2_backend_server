@@ -72,8 +72,8 @@ func SendtoLogPicChannel(key string, value image.Image) error {
 	usedmutex.Unlock()
 	channel := GetLogPicChannel(key)
 	if channel == nil {
-		dut := dut_query.Get_dut_status(key)
-		if dut.Machine_name == "null" {
+		dut := dut_query.GetDutStatus(key)
+		if dut.MachineName == "null" {
 			return errors.New("machine not found")
 		}
 		amount, _ := strconv.Atoi(config.Viper.GetString("log_img_amount"))
@@ -130,8 +130,8 @@ func UnblockLogPicChannel(key string) {
 func RenewThreshold(key string) error {
 	BlockLogPicChannel(key)
 	defer UnblockLogPicChannel(key)
-	dut := dut_query.Get_dut_status(key)
-	if dut.Machine_name == "null" {
+	dut := dut_query.GetDutStatus(key)
+	if dut.MachineName == "null" {
 		return errors.New("machine not found")
 	}
 	amount, _ := strconv.Atoi(config.Viper.GetString("log_img_amount"))

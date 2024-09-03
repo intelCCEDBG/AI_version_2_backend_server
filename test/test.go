@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+
 	// "os/exec"
 	"recorder/internal/kvm"
 	"recorder/internal/ssim"
@@ -12,7 +13,7 @@ import (
 )
 
 func ssimtest(image1, image2 string) {
-	ssimValue, err := ssim.Ssim_cal(image1, image2)
+	ssimValue, err := ssim.SsimCal(image1, image2)
 	if err != nil {
 		fmt.Println("Error:", err)
 	} else {
@@ -21,7 +22,7 @@ func ssimtest(image1, image2 string) {
 }
 
 func failcounttest() {
-	times := errorlog_query.Get_error_count_after_time("18F_21", "2024-08-13 16:28:45")
+	times := errorlog_query.GetErrorCountAfterTime("18F_21", "2024-08-13 16:28:45")
 	fmt.Println("Fail count:", times)
 }
 

@@ -14,11 +14,11 @@ func Get_all_error(machine_name string) []structure.Errorlog {
 	}
 	var Log structure.Errorlog
 	for Result.Next() {
-		err := Result.Scan(&Log.Time, &Log.Type, &Log.Test_item, &Log.Sku, &Log.Image, &Log.Bios, &Log.Uuid, &Log.Config)
+		err := Result.Scan(&Log.Time, &Log.Type, &Log.TestItem, &Log.Sku, &Log.Image, &Log.Bios, &Log.Uuid, &Log.Config)
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		Log.Machine_name = machine_name
+		Log.MachineName = machine_name
 		res = append(res, Log)
 	}
 	return res
@@ -31,11 +31,11 @@ func Get_nearest_4_error(machine_name string) []structure.Errorlog {
 	}
 	var Log structure.Errorlog
 	for Result.Next() {
-		err := Result.Scan(&Log.Time, &Log.Type, &Log.Test_item, &Log.Sku, &Log.Image, &Log.Bios, &Log.Uuid, &Log.Config)
+		err := Result.Scan(&Log.Time, &Log.Type, &Log.TestItem, &Log.Sku, &Log.Image, &Log.Bios, &Log.Uuid, &Log.Config)
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		Log.Machine_name = machine_name
+		Log.MachineName = machine_name
 		res = append(res, Log)
 	}
 	return res
@@ -50,7 +50,7 @@ func Delete_all_error(machine_name string) int64 {
 }
 
 func Set_error_record(errorlog structure.Errorlog) {
-	_, err := method.Exec("INSERT INTO errorlog (time, type, test_item, sku, image, bios, uuid, config, machine_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", errorlog.Time, errorlog.Type, errorlog.Test_item, errorlog.Sku, errorlog.Image, errorlog.Bios, errorlog.Uuid, errorlog.Config, errorlog.Machine_name)
+	_, err := method.Exec("INSERT INTO errorlog (time, type, test_item, sku, image, bios, uuid, config, machine_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", errorlog.Time, errorlog.Type, errorlog.TestItem, errorlog.Sku, errorlog.Image, errorlog.Bios, errorlog.Uuid, errorlog.Config, errorlog.MachineName)
 	if err != nil {
 		logger.Error("Insert error log error" + err.Error())
 	}
@@ -65,7 +65,7 @@ func Get_error_count(machine_name string) int {
 	}
 	return count
 }
-func Get_error_count_after_time(machine_name string, time string) int {
+func GetErrorCountAfterTime(machine_name string, time string) int {
 	Result := method.QueryRow("SELECT count(*) FROM errorlog where machine_name = ? and time > ?", machine_name, time)
 	var count int
 	err := Result.Scan(&count)

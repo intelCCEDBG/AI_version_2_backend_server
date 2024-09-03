@@ -57,45 +57,45 @@ func monitor_stop_abnormal_signal() {
 }
 func monitor_stop_signal() {
 	for {
-		keys := redis.Redis_get_by_pattern("kvm:*:stop")
+		keys := redis.RedisGetByPattern("kvm:*:stop")
 		for _, key := range keys {
-			hostname := redis.Redis_get(key)
+			hostname := redis.RedisGet(key)
 			logger.Info(hostname + " stop recording")
 			Stop_recording(hostname)
 			kvm.RecordtoIdle(hostname)
-			redis.Redis_del("kvm:" + hostname + ":stop")
+			redis.RedisDel("kvm:" + hostname + ":stop")
 		}
 		time.Sleep(5 * time.Second)
 	}
 }
 func monitor_error_signal() {
 	for {
-		keys := redis.Redis_get_by_pattern("kvm:*:error")
+		keys := redis.RedisGetByPattern("kvm:*:error")
 		for _, key := range keys {
-			hostname := redis.Redis_get(key)
+			hostname := redis.RedisGet(key)
 			logger.Info(hostname + " error occur while recording")
 			Stop_recording(hostname)
 			kvm.RecordtoError(hostname)
-			redis.Redis_del("kvm:" + hostname + ":error")
+			redis.RedisDel("kvm:" + hostname + ":error")
 		}
 		time.Sleep(5 * time.Second)
 	}
 }
 func monitor_start_signal() {
 	for {
-		keys := redis.Redis_get_by_pattern("kvm:*:recording")
+		keys := redis.RedisGetByPattern("kvm:*:recording")
 		for _, key := range keys {
 			var start_process = func() {
-				hostname := redis.Redis_get(key)
+				hostname := redis.RedisGet(key)
 				logger.Info(hostname + " start recording")
 				ctx, cancel := context.WithCancel(context.Background())
 				Stop_channel[hostname] = cancel
-				Kvm := kvm_query.Get_kvm_status(hostname)
+				Kvm := kvm_query.GetKvmStatus(hostname)
 				time.Sleep(5 * time.Second)
 				go ffmpeg.Record(Stop_signal_out_channel, Kvm, ctx)
 				go record_buffer(hostname)
 				kvm.IdletoRecord(hostname)
-				redis.Redis_del(key)
+				redis.RedisDel(key)
 			}
 			start_process()
 		}
@@ -117,9 +117,9 @@ func get_recording_kvm_back() {
 }
 
 func record_buffer(hostname string) { //for machines who freeze since the start of the recording. Prevent the corruption of error video file.
-	redis.Redis_set("kvm:"+hostname+":holding", hostname)
+	redis.RedisSet("kvm:"+hostname+":holding", hostname)
 	time.Sleep(120 * time.Second)
-	redis.Redis_del("kvm:" + hostname + ":holding")
+	redis.RedisDel("kvm:" + hostname + ":holding")
 }
 
 func stop_recording_all() {

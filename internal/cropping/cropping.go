@@ -9,7 +9,7 @@ import (
 	"recorder/pkg/logger"
 )
 
-func Crop_image(inputImagePath string, coordinates []float64, outputImagePath string) (image.Image, error) {
+func CropImage(inputImagePath string, coordinates []float64, outputImagePath string) (image.Image, error) {
 	file, err := os.Open(inputImagePath)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func Crop_image(inputImagePath string, coordinates []float64, outputImagePath st
 
 	return croppedImg, nil
 }
-func Switch_picture_if_exist(image_with_path string) {
+func SwitchPictureIfExist(image_with_path string) {
 	_, err := os.Stat(image_with_path)
 	if err == nil {
 		err = copyFile(image_with_path, image_with_path[:len(image_with_path)-4]+"_old.png")

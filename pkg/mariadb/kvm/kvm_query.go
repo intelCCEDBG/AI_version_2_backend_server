@@ -14,19 +14,19 @@ func Update_kvm_status(hostname string, status string) {
 	}
 }
 
-func Get_kvm_status(hostname string) (kvm_template structure.Kvm) {
+func GetKvmStatus(hostname string) (kvmTemplate structure.Kvm) {
 	KVM, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where hostname = " + "'" + hostname + "'")
 	if err != nil {
 		logger.Error("Query kvm " + hostname + " error: " + err.Error())
 	}
 	for KVM.Next() {
-		err := KVM.Scan(&kvm_template.Hostname, &kvm_template.Stream_url, &kvm_template.Stream_status, &kvm_template.Stream_interface)
+		err := KVM.Scan(&kvmTemplate.Hostname, &kvmTemplate.StreamUrl, &kvmTemplate.StreamStatus, &kvmTemplate.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
 		}
 	}
-	return kvm_template
+	return kvmTemplate
 }
 
 func Get_recording_kvms() (kvms []structure.Kvm) {
@@ -36,7 +36,7 @@ func Get_recording_kvms() (kvms []structure.Kvm) {
 	}
 	for Recording_list.Next() {
 		var tmp = structure.Kvm{}
-		err := Recording_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_interface)
+		err := Recording_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -53,7 +53,7 @@ func Get_idle_kvms() (kvms []structure.Kvm) {
 	}
 	for Idle_list.Next() {
 		var tmp = structure.Kvm{}
-		err := Idle_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_interface)
+		err := Idle_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -70,7 +70,7 @@ func Get_all_kvms() (kvms []structure.Kvm) {
 	}
 	for All_list.Next() {
 		var tmp = structure.Kvm{}
-		err := All_list.Scan(&tmp.Hostname, &tmp.Stream_url, &tmp.Stream_status, &tmp.Stream_interface)
+		err := All_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
