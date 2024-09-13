@@ -809,3 +809,8 @@ func Delete_message(c *gin.Context) {
 	kvm_query.Delete_message(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
+
+
+func GetKvmProject(c *gin.Context) {
+
+}

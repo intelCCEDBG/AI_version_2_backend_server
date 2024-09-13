@@ -1,2 +1,0 @@
-{"level":"info","ts":"2024-09-02T14:30:45.337+0800","msg":"amqp://guest:guest@10.227.106.11:5672/","func":"rabbitmq.Rabbit_init","file":"/go/src/app/pkg/rabbitmq/rabbitmq.go","line":42}
-{"level":"info","ts":"2024-09-02T14:40:56.769+0800","msg":"amqp://guest:guest@10.227.106.11:5672/","func":"rabbitmq.Rabbit_init","file":"/go/src/app/pkg/rabbitmq/rabbitmq.go","line":42}

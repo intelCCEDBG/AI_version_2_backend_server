@@ -29,27 +29,26 @@ func Start_backend() {
 
 	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
 
+	// AI-KVM
+	router.GET("/api/kvm/project", kvm_api.GetKvmProject)
+
 	//kvm
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
 	router.GET("/api/kvm/all_info", kvm_api.Kvm_all_info)
 	router.GET("/api/kvm/search", kvm_api.Kvm_search)
 	router.POST("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
-	router.OPTIONS("/api/kvm/kvm_mapping", kvm_api.Kvm_mapping)
 	router.POST("/api/kvm/delete_mapping", kvm_api.Kvm_delete)
-	router.OPTIONS("/api/kvm/delete_mapping", kvm_api.Kvm_delete)
 	router.POST("/api/kvm/project_status", kvm_api.Project_status)
-	router.OPTIONS("/api/kvm/project_status", kvm_api.Project_status)
 	router.POST("/api/kvm/insert_message", kvm_api.Insert_message)
-	router.OPTIONS("/api/kvm/insert_message", kvm_api.Insert_message)
 	router.POST("/api/kvm/delete_message", kvm_api.Delete_message)
-	router.OPTIONS("/api/kvm/delete_message", kvm_api.Delete_message)
 	router.POST("/api/kvm/stream_status", kvm_api.Kvm_status)
-	router.OPTIONS("/api/kvm/stream_status", kvm_api.Kvm_status)
 	router.GET("/api/kvm/modify", kvm_api.Kvm_modify)
 	router.GET("/api/kvm/floor", kvm_api.Get_KVM_Floor)
 	router.GET("/api/kvm/hostnames", kvm_api.Get_hostnames_by_floor)
 	router.GET("/api/kvm/get_message", kvm_api.Get_kvm_message)
+	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
+	router.GET("/api/kvm/gen_minute_video", kvm_api.Kvm_genminutevideo)
 
 	//debug_host
 	router.GET("/api/dbg/list", dbghost_api.DbgHostList)
@@ -74,13 +73,9 @@ func Start_backend() {
 	router.GET("/api/dut/errorlog", dut_api.DutErrorlog)
 	router.GET("/api/dut/seterrorlog", dut_api.SetDutErrorlog)
 	router.POST("/api/dut/setmachinestatus", dut_api.SetDutMachineStatus)
-	router.OPTIONS("/api/dut/setmachinestatus", dut_api.SetDutMachineStatus)
 	router.GET("/api/dut/deleteErrorlog", dut_api.DutDeleteErrorlog)
 	router.GET("/api/dut/deleteErrorlogbyproject", dut_api.DutDeleteErrorlogProject)
 
-	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
-	router.GET("/api/kvm/gen_minute_video", kvm_api.Kvm_genminutevideo)
-	router.OPTIONS("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	//debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
 	router.GET("/api/dbgunit/project_info", dbgunit_api.Project_info)

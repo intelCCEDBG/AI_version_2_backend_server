@@ -151,22 +151,26 @@ func ProcessAIResult(hostname string, machineName string) {
 			freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshhold)
 		}
 	case structure.NORMAL_LABEL:
-		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
-		if dutInfo.CycleCnt == dutInfo.Threshhold*12 && dutInfo.CycleCntHigh > dutInfo.Threshhold*10 {
-			logger.Warn("Machine " + machineName + " Windows Key Freeze Check!")
-			freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
-			if err != nil {
-				logger.Error("Error doing windows key freeze check: " + err.Error())
+		if dutInfo.CycleCnt >= dutInfo.Threshhold*12 && dutInfo.CycleCntHigh > dutInfo.Threshhold*10 {
+			dut_query.UpdateDutStatus(machineName, structure.FREEZE)
+			if dutInfo.Status == structure.NORMAL {
+				logger.Warn("Machine " + machineName + " Windows Key Freeze Check!")
+				freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
+				if err != nil {
+					logger.Error("Error doing windows key freeze check: " + err.Error())
+				}
+				if freezed {
+					logger.Debug("Machine " + machineName + " Freeze Detected, Status: NORMAL")
+					freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
+				} else {
+					logger.Warn("Machine " + machineName + " Recovered From Press Windows Key")
+					dut_query.UpdateDutCycleCnt(machineName, 0)
+					dut_query.UpdateDutCycleCntHigh(machineName, 0)
+					dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+				}
 			}
-			if freezed {
-				logger.Debug("Machine " + machineName + " Freeze Detected, Status: NORMAL")
-				dut_query.UpdateDutStatus(machineName, structure.FREEZE)
-				freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
-			} else {
-				logger.Warn("Machine " + machineName + " Recovered From Press Windows Key")
-				dut_query.UpdateDutCycleCnt(machineName, 0)
-				dut_query.UpdateDutCycleCntHigh(machineName, 0)
-			}
+		} else {
+			dut_query.UpdateDutStatus(machineName, structure.NORMAL)
 		}
 	}
 }
@@ -269,10 +273,3 @@ func createNewErrorRecord(machineName string, errortype string, machineStatus st
 	errorlog_query.SetErrorRecord(errorlog)
 	return errorlog
 }
-
-// func setErrorType(machineName string, errorType int) {
-// 	if errorType == 2 || errorType == 4 {
-// 		errorType = 3
-// 	}
-// 	dut_query.UpdateDutStatus(machineName, errorType)
-// }
