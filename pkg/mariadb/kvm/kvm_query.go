@@ -15,7 +15,7 @@ func Update_kvm_status(hostname string, status string) {
 }
 
 func GetKvmStatus(hostname string) (kvmTemplate structure.Kvm) {
-	KVM, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where hostname = " + "'" + hostname + "'")
+	KVM, err := method.Query("SELECT hostname, stream_url, stream_status, stream_interface FROM kvm where hostname = " + "'" + hostname + "'")
 	if err != nil {
 		logger.Error("Query kvm " + hostname + " error: " + err.Error())
 	}

@@ -13,11 +13,13 @@ import (
 	kvm_api "recorder/api/kvm"
 	"recorder/api/project"
 	"recorder/api/system"
+	user_api "recorder/api/user"
 
 	"github.com/gin-gonic/gin"
 )
 
 func Start_backend() {
+
 	// init setup
 	gin.SetMode(gin.ReleaseMode)
 	f, _ := os.Create(config.Viper.GetString("API_GIN_LOG_FILE"))
@@ -27,12 +29,16 @@ func Start_backend() {
 	router.Use(corsMiddleware())
 	router.Use(logger.GinLog())
 
-	router.POST("/api/upload", kvm_api.Kvm_csv_mapping)
+	router.POST("/api/upload", kvm_api.KvmCsvMapping)
 
-	// AI-KVM
-	router.GET("/api/kvm/project", kvm_api.GetKvmProject)
+	// user
+	router.GET("/api/user/list", user_api.List)
+	router.POST("/api/user/add", user_api.Add)
+	router.POST("/api/user/check", user_api.Check)
+	router.POST("/api/user/edit", user_api.Edit)
+	router.POST("/api/user/delete", user_api.Delete)
 
-	//kvm
+	// kvm
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
 	router.GET("/api/kvm/all_info", kvm_api.Kvm_all_info)
@@ -76,7 +82,7 @@ func Start_backend() {
 	router.GET("/api/dut/deleteErrorlog", dut_api.DutDeleteErrorlog)
 	router.GET("/api/dut/deleteErrorlogbyproject", dut_api.DutDeleteErrorlogProject)
 
-	//debug_unit
+	// debug_unit
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
 	router.GET("/api/dbgunit/project_info", dbgunit_api.Project_info)
 
@@ -85,7 +91,8 @@ func Start_backend() {
 	// router.GET("/api/email/command_out", email.Email_command_get)
 	router.GET("/api/report/state", email.Report)
 	router.GET("/api/email/enable_mail_constraint", email.Enable_mail_constraint)
-	//project
+
+	// project
 	router.GET("/api/project/get_project_setting", project.Get_Project_setting)
 	router.GET("/api/project/project_code", project.Get_Project_setting_by_code)
 	router.POST("/api/project/set_project_setting", project.Set_Project_setting)
@@ -106,9 +113,13 @@ func Start_backend() {
 	router.POST("/api/export/all", dbgunit_api.Save_csv)
 	router.POST("/api/freezecheck", dut_api.FreezeCheck)
 
+	// AI-KVM
+	router.GET("/api/kvm/check", kvm_api.CheckKvmUnit)
+
 	port := config.Viper.GetString("SERVER_PORT")
 	router.Run(":" + port)
 }
+
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -121,5 +132,3 @@ func corsMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// sudo docker compose up -d --build --force-recreate backend

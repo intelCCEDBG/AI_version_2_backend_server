@@ -6,6 +6,22 @@ import (
 	"strings"
 )
 
+type User struct {
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	Permission int    `json:"permission"`
+}
+
+type DebugUnitDetail struct {
+	ProjectName   string `json:"project"`
+	KvmHostName   string `json:"kvm_location"`
+	KvmIP         string `json:"kvm_ip"`
+	KvmStatus     string `json:"kvm_status"`
+	MachineName   string `json:"machine_name"`
+	DebugHostIP   string `json:"dbg_ip"`
+	DebugHostName string `json:"dbg_hostname"`
+}
+
 type Kvm struct {
 	Hostname        string `json:"hostname"`
 	StreamUrl       string `json:"url"`

@@ -133,6 +133,6 @@ func Project_info(c *gin.Context) {
 }
 
 func Save_csv(c *gin.Context) {
-	unit_query.Export_all_to_csv()
+	unit_query.ExportAllToCsv()
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "OK")
 }

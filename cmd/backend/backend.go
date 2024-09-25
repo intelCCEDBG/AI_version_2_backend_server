@@ -6,6 +6,7 @@ import (
 	"recorder/internal/router"
 	"recorder/pkg/logger"
 	"recorder/pkg/mariadb"
+	user_query "recorder/pkg/mariadb/user"
 	"recorder/pkg/redis"
 )
 
@@ -13,13 +14,12 @@ func main() {
 	fmt.Println("Starting server...")
 	config.LoadConfig()
 	redis.RedisInit()
-	// fmt.Println(a)
-	// redis.Redis_set("kvm:1","123")
 	logger.InitLogger(config.Viper.GetString("API_LOG_FILE_PATH"))
 	err := mariadb.ConnectDB()
 	if err != nil {
 		logger.Error("Connect to mariadb error: " + err.Error())
 		return
 	}
+	user_query.InsertInitUser()
 	router.Start_backend()
 }

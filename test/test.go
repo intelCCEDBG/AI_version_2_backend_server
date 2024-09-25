@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"recorder/config"
+	// "recorder/internal/kvm"
 	"recorder/internal/ssim"
 	"recorder/pkg/mariadb"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
+
 	unit_query "recorder/pkg/mariadb/unit"
 	"time"
 )
@@ -49,8 +51,17 @@ func main() {
 		return
 	}
 	datasetPath := "../one_on_one_plan/cursor/dataset/"
-	duts := []string{"18F_26", "18F_30", "18F_31"}
+	// streams := []string{"http://10.5.238.52:8081", "http://10.5.238.80:8081"}
+	duts := []string{"18F_24"}
 	timeLength := 5 * time.Minute
+
+	// for i, stream := range streams {
+	// 	machine := "21F_R7B2"
+	// 	if i == 0 {
+	// 		machine = "21F_R5A2"
+	// 	}
+	// 	capture(int(timeLength.Seconds()), stream, datasetPath+machine+"/")
+	// }
 
 	for _, dut := range duts {
 		// make sure the dataset folder exists
@@ -66,4 +77,9 @@ func main() {
 		fmt.Println("Start capturing for dut", dut, "from", streamUrl)
 		capture(times, streamUrl, datasetPath+dut+"/")
 	}
+
+	// err := kvm.PressWindowsKey("10.5.254.155")
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// }
 }
