@@ -101,24 +101,6 @@ type Messages struct {
 	Hostname string   `json:"hostname"`
 	Messages []string `json:"message"`
 }
-type CheckKvmResponse struct {
-	Status        string `json:"status"`
-	ProjectName   string `json:"project"`
-	KvmHostnName  string `json:"kvm_location"`
-	KvmIP         string `json:"kvm_ip"`
-	KvmStatus     string `json:"kvm_status"`
-	MachineName   string `json:"machine_name"`
-	DebugHostIP   string `json:"dbg_ip"`
-	DebugHostName string `json:"dbg_hostname"`
-}
-
-type CreateKvmUnitRequest struct {
-	Project     string `json:"project"`
-	DutName     string `json:"dut_name"`
-	DebugHost   string `json:"debug_host"`
-	KvmHostname string `json:"kvm_hostname"`
-	KvmIp       string `json:"kvm_ip"`
-}
 
 func Kvm_list(c *gin.Context) {
 	extra := c.Query("extra")
@@ -779,19 +761,20 @@ func Project_status(c *gin.Context) { //start entry point
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Kvm_modify(c *gin.Context) {
+
+func KvmModify(c *gin.Context) {
 	hostname := c.Query("hostname")
 	ip := c.Query("ip")
-	nas_ip := c.Query("nas_ip")
 	owner := c.Query("owner")
-	_, err := method.Exec("UPDATE kvm SET ip=?, owner=?, nas_ip=?, stream_url=? WHERE hostname=?", ip, owner, nas_ip, "http://"+ip+":8081", hostname)
+	_, err := method.Exec("UPDATE kvm SET ip = ?, owner = ?, stream_url = ? WHERE hostname = ?", ip, owner, "http://"+ip+":8081", hostname)
 	if err != nil {
 		logger.Error("Modify kvm info error" + err.Error())
-		apiservice.ResponseWithJson(c.Writer, http.StatusNotFound, "")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+	c.JSON(http.StatusOK, gin.H{"message": "Modify kvm info successfully"})
 }
+
 func Get_KVM_Floor(c *gin.Context) {
 	var Floor_out KVM_floor
 	Floor_map := kvm_query.Get_all_Floor_from_hostname()
@@ -801,6 +784,7 @@ func Get_KVM_Floor(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Floor_out)
 }
+
 func Get_hostnames_by_floor(c *gin.Context) {
 	var Hostnames_out Hostnames
 	floor := c.Query("floor")
@@ -833,26 +817,4 @@ func Delete_message(c *gin.Context) {
 	_ = json.Unmarshal(body, &Req)
 	kvm_query.Delete_message(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
-}
-
-func CheckKvmUnit(c *gin.Context) {
-	ip := c.Query("ip")
-	status, unit, err := unit_query.CheckKvmUnit(ip)
-	if err != nil {
-		logger.Error("Check kvm unit error: " + err.Error())
-		c.JSON(500, gin.H{
-			"error": "Check kvm unit error: " + err.Error(),
-		})
-	}
-	result := CheckKvmResponse{
-		Status:        status,
-		ProjectName:   unit.ProjectName,
-		KvmHostnName:  unit.KvmHostName,
-		KvmIP:         unit.KvmIP,
-		KvmStatus:     unit.KvmStatus,
-		MachineName:   unit.MachineName,
-		DebugHostIP:   unit.DebugHostIP,
-		DebugHostName: unit.DebugHostName,
-	}
-	c.JSON(200, result)
 }

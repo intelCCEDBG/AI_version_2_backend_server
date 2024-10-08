@@ -52,8 +52,8 @@ func DbgHostList(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, DbgHostList)
 }
 
-func Dbghost_freelist(c *gin.Context) {
-	var Dbghost_list DbgHostListResponse
+func DbghostFreeList(c *gin.Context) {
+	var dbghostList DbgHostListResponse
 	rows, err := method.Query("SELECT A.ip FROM debug_host A LEFT JOIN debug_unit C ON A.ip = C.ip WHERE C.ip IS NULL;")
 	if err != nil {
 		logger.Error("Query empty debug host list error: " + err.Error())
@@ -61,13 +61,16 @@ func Dbghost_freelist(c *gin.Context) {
 	for rows.Next() {
 		var tmp string
 		err = rows.Scan(&tmp)
-		Dbghost_list.Ip = append(Dbghost_list.Ip, tmp)
+		if err != nil {
+			logger.Error("Query empty debug host list error: " + err.Error())
+		}
+		dbghostList.Ip = append(dbghostList.Ip, tmp)
 	}
-	if Dbghost_list.Ip == nil {
+	if dbghostList.Ip == nil {
 		tmp := []string{}
-		Dbghost_list.Ip = tmp
+		dbghostList.Ip = tmp
 	}
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Dbghost_list)
+	apiservice.ResponseWithJson(c.Writer, http.StatusOK, dbghostList)
 }
 
 func Dbghost_all_info(c *gin.Context) {

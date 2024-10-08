@@ -181,3 +181,31 @@ func SetMachineStatus(machineStatus structure.MachineStatus) {
 		return
 	}
 }
+
+func CheckDutExist(machineName string) (bool, error) {
+	query := "SELECT machine_name FROM machine WHERE machine_name = ?"
+	row := method.QueryRow(query, machineName)
+	var name string
+	err := row.Scan(&name)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return false, nil
+		}
+		logger.Error("Check dut exist error: " + err.Error())
+		return false, err
+	}
+	return true, nil
+}
+
+func CreateDut(machineName string) (err error) {
+	query := `
+		INSERT INTO machine (machine_name, ssim, status, cycle_cnt, cycle_cnt_high, error_timestamp, path, threshold, lock_coord)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err = method.Exec(query, machineName, 80, 1, 0, 0, 0, "null", 15, "")
+	if err != nil {
+		logger.Error("Insert dut error: " + err.Error())
+		return err
+	}
+	return nil
+}

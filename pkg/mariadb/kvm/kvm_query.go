@@ -7,6 +7,34 @@ import (
 	"strings"
 )
 
+func KvmHostnameExists(hostname string) (bool, error) {
+	// see if the kvm hostname exists
+	row := method.QueryRow("SELECT ip FROM kvm WHERE hostname = ?", hostname)
+	var ip string
+	err := row.Scan(&ip)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return false, nil
+		}
+		logger.Error("Check kvm hostname error: " + err.Error())
+		return false, err
+	}
+	return true, nil
+}
+
+func CreateKvm(ip, location, owner string) error {
+	query := `
+		INSERT INTO kvm (hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	_, err := method.Exec(query, location, ip, owner, "null", 1, "null", "http://"+ip+":8081", "recording", "null", 0)
+	if err != nil {
+		logger.Error("Insert kvm error: " + err.Error())
+		return err
+	}
+	return nil
+}
+
 func Update_kvm_status(hostname string, status string) {
 	_, err := method.Exec("UPDATE kvm SET stream_status = ? WHERE hostname = ?", status, hostname)
 	if err != nil {
@@ -79,6 +107,7 @@ func Get_all_kvms() (kvms []structure.Kvm) {
 	}
 	return kvms
 }
+
 func Get_all_Floor_from_hostname() map[string]int {
 	Floors := make(map[string]int)
 	Projects, err := method.Query("SELECT hostname FROM kvm")
@@ -103,6 +132,7 @@ func Get_all_Floor_from_hostname() map[string]int {
 	}
 	return Floors
 }
+
 func Get_hostnames_by_floor(floor string) []string {
 	var Hostnames []string
 	hostnames, err := method.Query("SELECT hostname FROM kvm")

@@ -6,6 +6,7 @@ import (
 	"recorder/config"
 	"recorder/pkg/logger"
 
+	aikvm_api "recorder/api/aikvm"
 	dbghost_api "recorder/api/debug_host"
 	dbgunit_api "recorder/api/debug_unit"
 	dut_api "recorder/api/dut"
@@ -29,8 +30,6 @@ func Start_backend() {
 	router.Use(corsMiddleware())
 	router.Use(logger.GinLog())
 
-	router.POST("/api/upload", kvm_api.KvmCsvMapping)
-
 	// user
 	router.GET("/api/user/list", user_api.List)
 	router.POST("/api/user/add", user_api.Add)
@@ -49,7 +48,7 @@ func Start_backend() {
 	router.POST("/api/kvm/insert_message", kvm_api.Insert_message)
 	router.POST("/api/kvm/delete_message", kvm_api.Delete_message)
 	router.POST("/api/kvm/stream_status", kvm_api.Kvm_status)
-	router.GET("/api/kvm/modify", kvm_api.Kvm_modify)
+	router.GET("/api/kvm/modify", kvm_api.KvmModify)
 	router.GET("/api/kvm/floor", kvm_api.Get_KVM_Floor)
 	router.GET("/api/kvm/hostnames", kvm_api.Get_hostnames_by_floor)
 	router.GET("/api/kvm/get_message", kvm_api.Get_kvm_message)
@@ -58,7 +57,7 @@ func Start_backend() {
 
 	//debug_host
 	router.GET("/api/dbg/list", dbghost_api.DbgHostList)
-	router.GET("/api/dbg/freelist", dbghost_api.Dbghost_freelist)
+	router.GET("/api/dbg/freelist", dbghost_api.DbghostFreeList)
 	router.GET("/api/dbg/info", dbghost_api.Dbghost_info)
 	router.GET("/api/dbg/all_info", dbghost_api.Dbghost_all_info)
 	router.GET("/api/dbg/search", dbghost_api.Dbghost_search)
@@ -110,11 +109,13 @@ func Start_backend() {
 	router.GET("/api/project/getstarttime", project.Getstarttime)
 
 	router.GET("/api/system/CPU", system.Get_CPU_status)
-	router.POST("/api/export/all", dbgunit_api.Save_csv)
+	router.POST("/api/export", dbgunit_api.DownloadCsv)
+	router.POST("/api/upload", kvm_api.KvmCsvMapping)
 	router.POST("/api/freezecheck", dut_api.FreezeCheck)
 
 	// AI-KVM
-	router.GET("/api/kvm/check", kvm_api.CheckKvmUnit)
+	router.GET("/api/aikvm/check", aikvm_api.CheckKvmUnit)
+	router.POST("/api/aikvm/create", aikvm_api.CreateKvmUnit)
 
 	port := config.Viper.GetString("SERVER_PORT")
 	router.Run(":" + port)

@@ -22,6 +22,18 @@ type DebugUnitDetail struct {
 	DebugHostName string `json:"dbg_hostname"`
 }
 
+type CreateKvmUnitRequest struct {
+	ProjectName    string `json:"project"`
+	ProjectCode    string `json:"code"`
+	KvmIp          string `json:"kvm_ip"`
+	KvmHostname    string `json:"kvm_location"`
+	KvmOwner       string `json:"kvm_owner"`
+	DutName        string `json:"dut_name"`
+	DebugHost      string `json:"dbh_name"`
+	DebugHostIP    string `json:"dbh_ip"`
+	DebugHostOwner string `json:"dbh_owner"`
+}
+
 type Kvm struct {
 	Hostname        string `json:"hostname"`
 	StreamUrl       string `json:"url"`
@@ -146,7 +158,7 @@ func CoordS2F(coord string) []float64 {
 	return coordF
 }
 
-type ProjectSettingTemplate struct {
+type ProjectTemplate struct {
 	ProjectName string          `json:"project_name"`
 	ShortName   string          `json:"short_name"`
 	Owner       string          `json:"owner"`

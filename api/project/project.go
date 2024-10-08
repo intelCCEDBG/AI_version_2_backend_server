@@ -50,7 +50,7 @@ type Report_State struct {
 }
 
 func Get_Project_setting(c *gin.Context) {
-	var Project_setting_out structure.ProjectSettingTemplate
+	var Project_setting_out structure.ProjectTemplate
 	project_name := c.Query("project_name")
 	rows, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project WHERE project_name=?;", project_name)
 	if err != nil {
@@ -72,7 +72,7 @@ func Get_Project_setting(c *gin.Context) {
 func Get_Project_setting_by_code(c *gin.Context) {
 	var Out_Email []structure.EmailTemplate
 	var Out_email_template structure.EmailTemplate
-	var Project_setting_out structure.ProjectSettingTemplate
+	var Project_setting_out structure.ProjectTemplate
 	code := c.Query("short_name")
 	rows, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project WHERE short_name=?;", code)
 	if err != nil {
@@ -103,7 +103,7 @@ func Get_Project_setting_by_code(c *gin.Context) {
 }
 func Set_Project_setting(c *gin.Context) {
 	var Project_setting_in In_Project_tamplate
-	var Update_project_tamplate structure.ProjectSettingTemplate
+	var Update_project_tamplate structure.ProjectTemplate
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Read project setting request error: " + err.Error())

@@ -11,20 +11,48 @@ import (
 	"time"
 )
 
-func Update_project_setting(setting structure.ProjectSettingTemplate, Email_string string) {
+func CreateProject(name, code string) error {
+	query := `
+		INSERT INTO project (project_name, short_name, owner, email_list, status, freeze_detection)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+	_, err := method.Exec(query, name, code, "", "", 0, "open")
+	if err != nil {
+		logger.Error("Insert project error: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+func ProjectCodeExists(code string) (bool, error) {
+	// see if the project code exists
+	row := method.QueryRow("SELECT project_name FROM project WHERE short_name = ?", code)
+	var project string
+	err := row.Scan(&project)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return false, nil
+		}
+		logger.Error("Check project code error: " + err.Error())
+		return false, err
+	}
+	return true, nil
+}
+
+func Update_project_setting(setting structure.ProjectTemplate, Email_string string) {
 	_, err := method.Exec("UPDATE project SET short_name = ?, owner=?, email_list=? WHERE project_name = ?", setting.ShortName, setting.Owner, Email_string, setting.ProjectName)
 	if err != nil {
 		logger.Error("Update project status error: " + err.Error())
 	}
 }
-func Get_all_projects_setting() []structure.ProjectSettingTemplate {
+func Get_all_projects_setting() []structure.ProjectTemplate {
 	Project, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project")
 	if err != nil {
 		logger.Error("Query all project error: " + err.Error())
 	}
-	var project_list []structure.ProjectSettingTemplate
+	var project_list []structure.ProjectTemplate
 	for Project.Next() {
-		var project_setting structure.ProjectSettingTemplate
+		var project_setting structure.ProjectTemplate
 		var email_string string
 		err := Project.Scan(&project_setting.ProjectName, &project_setting.ShortName, &project_setting.Owner, &email_string)
 		if err != nil {

@@ -132,7 +132,16 @@ func Project_info(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
 
-func Save_csv(c *gin.Context) {
-	unit_query.ExportAllToCsv()
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "OK")
+func DownloadCsv(c *gin.Context) {
+	url, err := unit_query.ExportAllToCsv()
+	if err != nil {
+		logger.Error("Export all units to csv error: " + err.Error())
+		c.JSON(500, gin.H{
+			"error": "Export all units to csv error: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"url": url,
+	})
 }
