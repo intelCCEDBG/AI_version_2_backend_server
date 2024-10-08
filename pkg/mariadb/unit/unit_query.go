@@ -6,6 +6,7 @@ import (
 	"recorder/internal/structure"
 	"recorder/pkg/fileoperation"
 	"recorder/pkg/logger"
+	"recorder/pkg/mariadb"
 	debughost_query "recorder/pkg/mariadb/debughost"
 	dut_query "recorder/pkg/mariadb/dut"
 	kvm_query "recorder/pkg/mariadb/kvm"
@@ -112,6 +113,10 @@ func CheckKvmUnit(ip string) (string, structure.DebugUnitDetail, error) {
 }
 
 func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
+	tr, err := mariadb.DB.Begin()
+	if err != nil {
+		return "Create transaction error: " + err.Error(), err
+	}
 	// check if project code exists
 	exists, err := project_query.ProjectCodeExists(req.ProjectCode)
 	if err != nil {
@@ -121,8 +126,13 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 		return "Project code already exists", nil
 	}
 	// create project
-	err = project_query.CreateProject(req.ProjectName, req.ProjectCode)
+	query := `
+		INSERT INTO project (project_name, short_name, owner, email_list, status, freeze_detection)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
+	_, err = tr.Exec(query, req.ProjectName, req.ProjectCode, "", "", 0, "open")
 	if err != nil {
+		tr.Rollback()
 		return "Create project error: " + err.Error(), err
 	}
 	// create kvm unit
@@ -130,25 +140,37 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 		// check if kvm hostname exists
 		exists, err := kvm_query.KvmHostnameExists(req.KvmHostname)
 		if err != nil {
+			tr.Rollback()
 			return "Check kvm hostname error: " + err.Error(), err
 		}
 		if exists {
 			return "Kvm hostname already exists", nil
 		}
 		// create kvm
-		err = kvm_query.CreateKvm(req.KvmIp, req.KvmHostname, req.KvmOwner)
+		query = `
+			INSERT INTO kvm (hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+		_, err = tr.Exec(query, req.KvmHostname, req.KvmIp, req.KvmOwner, "null", 1, "null", "http://"+req.KvmIp+":8081", "recording", "null", 0)
 		if err != nil {
+			tr.Rollback()
 			return "Create kvm error: " + err.Error(), err
 		}
 	}
 	// create dut
 	exists, err = dut_query.CheckDutExist(req.DutName)
 	if err != nil {
+		tr.Rollback()
 		return "Check dut name error: " + err.Error(), err
 	}
 	if !exists {
-		err = dut_query.CreateDut(req.DutName)
+		query := `
+			INSERT INTO machine (machine_name, ssim, status, cycle_cnt, cycle_cnt_high, error_timestamp, path, threshold, lock_coord)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+		_, err = tr.Exec(query, req.DutName, 80, 1, 0, 0, 0, "null", 15, "")
 		if err != nil {
+			tr.Rollback()
 			return "Create dut error: " + err.Error(), err
 		}
 	}
@@ -157,28 +179,37 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 		// check if debug host ip exists
 		exists, err := debughost_query.CheckDebugHostIP(req.DebugHostIP)
 		if err != nil {
+			tr.Rollback()
 			return "Check debug host ip error: " + err.Error(), err
 		}
 		if exists {
+			tr.Rollback()
 			return "Debug host ip already exists", nil
 		}
 		// create debug host
-		err = debughost_query.CreateDebugHost(req.DebugHostIP, req.DebugHost, req.DebugHostOwner)
+		query = `
+			INSERT INTO debug_host (ip, hostname, owner)
+			VALUES (?, ?, ?)
+		`
+		_, err = tr.Exec(query, req.DebugHostIP, req.DebugHost, req.DebugHostOwner)
 		if err != nil {
+			tr.Rollback()
 			return "Create debug host error: " + err.Error(), err
 		}
 	}
 	// create debug unit
-	uuid, err := CreateUnit(structure.Unit{
-		MachineName: req.DutName,
-		Ip:          req.DebugHostIP,
-		Hostname:    req.KvmHostname,
-		Project:     req.ProjectName,
-	})
+	uuid := uuid.New().String()
+	query = `
+		INSERT INTO debug_unit (uuid, machine_name, ip, hostname, project)
+		VALUES (?, ?, ?, ?, ?)
+	`
+	_, err = tr.Exec(query, uuid, req.DutName, req.DebugHostIP, req.KvmHostname, req.ProjectName)
 	if err != nil {
+		tr.Rollback()
 		return "Create debug unit error: " + err.Error(), err
 	}
-	return uuid, nil
+	tr.Commit()
+	return "Successfully Created, UUID: " + uuid, nil
 }
 
 func ExportAllToCsv() (string, error) {

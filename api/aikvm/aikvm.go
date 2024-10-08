@@ -49,6 +49,7 @@ func CreateKvmUnit(c *gin.Context) {
 		c.JSON(500, gin.H{
 			"error": "Create kvm unit error: " + err.Error(),
 		})
+		return
 	}
 	message, err := unit_query.CreateKvmUnit(req)
 	if err != nil {
@@ -56,13 +57,15 @@ func CreateKvmUnit(c *gin.Context) {
 		c.JSON(500, gin.H{
 			"error": message,
 		})
+		return
 	}
-	if strings.Contains(message, ": ") {
+	if !strings.Contains(message, "Successfully") {
 		c.JSON(400, gin.H{
 			"error": message,
 		})
+		return
 	}
 	c.JSON(200, gin.H{
-		"message": "SUT " + message + " is created",
+		"message": message,
 	})
 }

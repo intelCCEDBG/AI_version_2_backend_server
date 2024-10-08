@@ -232,3 +232,22 @@ func GetStreamStatus(hostname string) (string, error) {
 	}
 	return status, nil
 }
+
+func DeleteKvm(hostname string) error {
+	_, err := method.Exec("DELETE FROM debug_unit WHERE hostname = ?", hostname)
+	if err != nil {
+		logger.Error("Delete debug_unit error: " + err.Error())
+		return err
+	}
+	_, err = method.Exec("DELETE FROM kvm WHERE hostname = ?", hostname)
+	if err != nil {
+		logger.Error("Delete kvm error: " + err.Error())
+		return err
+	}
+	_, err = method.Exec("DELETE FROM kvm_message WHERE hostname = ?", hostname)
+	if err != nil {
+		logger.Error("Delete kvm message error: " + err.Error())
+		return err
+	}
+	return nil
+}

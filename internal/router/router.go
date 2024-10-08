@@ -38,6 +38,7 @@ func Start_backend() {
 	router.POST("/api/user/delete", user_api.Delete)
 
 	// kvm
+	router.DELETE("/api/kvm", kvm_api.DeleteKvm)
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
 	router.GET("/api/kvm/all_info", kvm_api.Kvm_all_info)

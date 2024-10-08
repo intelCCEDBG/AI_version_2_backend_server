@@ -818,3 +818,13 @@ func Delete_message(c *gin.Context) {
 	kvm_query.Delete_message(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
+
+func DeleteKvm(c *gin.Context) {
+	hostname := c.Query("hostname")
+	err := kvm_query.DeleteKvm(hostname)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Delete kvm successfully"})
+}
