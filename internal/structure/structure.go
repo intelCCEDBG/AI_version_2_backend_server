@@ -12,6 +12,17 @@ type User struct {
 	Permission int    `json:"permission"`
 }
 
+type DebugUnitInfo struct {
+	Hostname     string `json:"hostname"`
+	MachineName  string `json:"machine_name"`
+	KvmLink      string `json:"stream_url"`
+	RecordStatus string `json:"record_status"`
+	LockCoord    string `json:"lock_coord"`
+	Status       string `json:"status"`
+	DebugHost    string `json:"debug_host"`
+	LastFail     string `json:"last_fail"`
+}
+
 type DebugUnitDetail struct {
 	ProjectName   string `json:"project"`
 	KvmHostName   string `json:"kvm_location"`

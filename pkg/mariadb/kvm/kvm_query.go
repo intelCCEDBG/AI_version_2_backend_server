@@ -27,7 +27,7 @@ func CreateKvm(ip, location, owner string) error {
 		INSERT INTO kvm (hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err := method.Exec(query, location, ip, owner, "null", 1, "null", "http://"+ip+":8081", "recording", "null", 0)
+	_, err := method.Exec(query, location, ip, owner, "null", 1, "null", "http://"+ip+":8081", "idle", "null", 0)
 	if err != nil {
 		logger.Error("Insert kvm error: " + err.Error())
 		return err

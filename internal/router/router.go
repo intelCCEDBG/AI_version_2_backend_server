@@ -38,6 +38,8 @@ func Start_backend() {
 	router.POST("/api/user/delete", user_api.Delete)
 
 	// kvm
+	router.POST("/api/kvm", kvm_api.AddKvm)
+	router.GET("/api/kvm/exists", kvm_api.CheckKvmHostname)
 	router.DELETE("/api/kvm", kvm_api.DeleteKvm)
 	router.GET("/api/kvm/list", kvm_api.Kvm_list)
 	router.GET("/api/kvm/info", kvm_api.Kvm_info)
@@ -56,7 +58,9 @@ func Start_backend() {
 	router.GET("/api/kvm/gen_video", kvm_api.Kvm_genvideo)
 	router.GET("/api/kvm/gen_minute_video", kvm_api.Kvm_genminutevideo)
 
-	//debug_host
+	// debug_host
+	router.POST("/api/dbg", dbghost_api.AddDbghost)
+	router.GET("/api/dbg/free", dbghost_api.CheckDbghostFree)
 	router.GET("/api/dbg/list", dbghost_api.DbgHostList)
 	router.GET("/api/dbg/freelist", dbghost_api.DbghostFreeList)
 	router.GET("/api/dbg/info", dbghost_api.Dbghost_info)
@@ -64,7 +68,9 @@ func Start_backend() {
 	router.GET("/api/dbg/search", dbghost_api.Dbghost_search)
 	router.GET("/api/dbg/modify", dbghost_api.Dbghost_modify)
 
-	//dut
+	// dut
+	router.POST("/api/dut", dut_api.AddDut)
+	router.GET("/api/dut/free", dut_api.CheckDutFree)
 	router.GET("/api/dut/list", dut_api.DutList)
 	router.GET("/api/dut/listbyproject", dut_api.ProjectDutList)
 	router.GET("/api/dut/freelist", dut_api.DutFreeList)
@@ -83,8 +89,11 @@ func Start_backend() {
 	router.GET("/api/dut/deleteErrorlogbyproject", dut_api.DutDeleteErrorlogProject)
 
 	// debug_unit
+	router.POST("/api/dbgunit", dbgunit_api.AddDebugUnit)
 	router.GET("/api/dbgunit/project_list", dbgunit_api.Project_list)
-	router.GET("/api/dbgunit/project_info", dbgunit_api.Project_info)
+	router.GET("/api/dbgunit/project_info", dbgunit_api.ProjectInfo)
+	router.GET("/api/dbgunit/leave_project", dbgunit_api.LeaveProject)
+	router.POST("/api/dbgunit/join_project", dbgunit_api.JoinProject)
 
 	// email
 	// router.POST("/api/email/command_in", email.Email_command_in)
@@ -93,6 +102,7 @@ func Start_backend() {
 	router.GET("/api/email/enable_mail_constraint", email.Enable_mail_constraint)
 
 	// project
+	router.GET("/api/project/exists", project.CheckProject)
 	router.GET("/api/project/get_project_setting", project.Get_Project_setting)
 	router.GET("/api/project/project_code", project.Get_Project_setting_by_code)
 	router.POST("/api/project/set_project_setting", project.Set_Project_setting)

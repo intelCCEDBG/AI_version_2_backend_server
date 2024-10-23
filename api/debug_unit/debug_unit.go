@@ -2,32 +2,122 @@ package dbgunit_api
 
 import (
 	"net/http"
+	"recorder/internal/structure"
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
+	debughost_query "recorder/pkg/mariadb/debughost"
+	dut_query "recorder/pkg/mariadb/dut"
 	"recorder/pkg/mariadb/method"
+	project_query "recorder/pkg/mariadb/project"
 	unit_query "recorder/pkg/mariadb/unit"
 
 	"github.com/gin-gonic/gin"
 	// "fmt"
 )
 
+type addUnitRequest struct {
+	ProjectName string `json:"project"`
+	MachineName string `json:"dut"`
+	HostName    string `json:"kvm"`
+	DbgIp       string `json:"dbh"`
+}
+
+type joinRequest struct {
+	ProjectName string   `json:"project"`
+	Machines    []string `json:"duts"`
+}
+
 type Project_list_response struct {
 	Project []string `json:"projects"`
 }
 
-type Debug_unit_info struct {
-	Hostname      string `json:"hostname"`
-	Machine_name  string `json:"machine_name"`
-	KVM_link      string `json:"stream_url"`
-	Record_status string `json:"record_status"`
-	Lock_coord    string `json:"lock_coord"`
-	Status        string `json:"status"`
-	Debug_host    string `json:"debug_host"`
-	Last_fail     string `json:"last_fail"`
+type ProjectInfoResponse struct {
+	Duts []structure.DebugUnitInfo `json:"duts"`
 }
 
-type Project_info_response struct {
-	Duts []Debug_unit_info `json:"duts"`
+func AddDebugUnit(c *gin.Context) {
+	var req addUnitRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		logger.Error("Bind json error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// check if the project exists
+	if req.ProjectName != "" {
+		exists, err := project_query.ProjectNameExists(req.ProjectName)
+		if err != nil {
+			logger.Error("Check project name error: " + err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if !exists {
+			logger.Error("Project name not exists")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "project name not exist"})
+		}
+	}
+	// check if the debug host ip exists
+	exists, err := debughost_query.CheckDebugHostIPExist(req.DbgIp)
+	if err != nil {
+		logger.Error("Check debug host ip error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !exists {
+		logger.Error("Debug host ip not exists")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "debug host ip not exist"})
+		return
+	}
+	// check if the debug host is free
+	free, err := debughost_query.CheckDebugHostFree(req.DbgIp, req.HostName)
+	if err != nil {
+		logger.Error("Check debug host free error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !free {
+		logger.Error("Debug host is not free")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "debug host is not free"})
+		return
+	}
+	// check if the machine name exists
+	exists, err = dut_query.CheckDutExist(req.MachineName)
+	if err != nil {
+		logger.Error("Check dut exists error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !exists {
+		logger.Error("Dut not exists")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dut not exist"})
+		return
+	}
+	// check if the machine name is free
+	free, err = dut_query.CheckDutFree(req.MachineName, req.HostName)
+	if err != nil {
+		logger.Error("Check dut free error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !free {
+		logger.Error("Dut is not free")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dut is not free"})
+		return
+	}
+	// insert the debug unit
+	unit := structure.Unit{
+		Project:     req.ProjectName,
+		MachineName: req.MachineName,
+		Hostname:    req.HostName,
+		Ip:          req.DbgIp,
+	}
+	uuid, err := unit_query.CreateUnit(unit)
+	if err != nil {
+		logger.Error("Create unit error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"uuid": uuid})
 }
 
 func Project_list(c *gin.Context) {
@@ -48,88 +138,38 @@ func Project_list(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_list)
 }
 
-func Project_info(c *gin.Context) {
-	var Resp Project_info_response
-	project_name := c.Query("project")
-	if project_name == "ALL" {
-		var Resp2 Project_info_response
-		var Project_list []string
-		rows, err := method.Query("SELECT DISTINCT project FROM debug_unit;")
+func ProjectInfo(c *gin.Context) {
+	res := ProjectInfoResponse{}
+	projectName := c.Query("project")
+	if projectName == "ALL" {
+		projectList, err := project_query.GetAllProjects()
 		if err != nil {
-			logger.Error("Search all project info error: " + err.Error())
+			logger.Error("Get all project list error: " + err.Error())
+			c.JSON(500, gin.H{
+				"error": "Get all project list error: " + err.Error(),
+			})
 		}
-		for rows.Next() {
-			var tmp string
-			err = rows.Scan(&tmp)
+		for _, pj := range projectList {
+			unitsInfo, err := unit_query.GetUnitsInfoByProject(pj)
 			if err != nil {
-				logger.Error("Search all project info error: " + err.Error())
+				logger.Error("Get units info by project error: " + err.Error())
+				c.JSON(500, gin.H{
+					"error": "Get units info by project error: " + err.Error(),
+				})
 			}
-			Project_list = append(Project_list, tmp)
+			res.Duts = append(res.Duts, unitsInfo...)
 		}
-		for _, pj := range Project_list {
-			rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;", pj)
-			if err != nil {
-				logger.Error("Search project info error: " + err.Error())
-			}
-			for rows.Next() {
-				var tmp Debug_unit_info
-				err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Debug_host)
-				if err != nil {
-					logger.Error("Search project info error: " + err.Error())
-				}
-				row := method.QueryRow("SELECT status FROM machine WHERE machine_name=?;", &tmp.Machine_name)
-				err = row.Scan(&tmp.Status)
-				if err != nil {
-					logger.Error("Search project info error: " + err.Error())
-				}
-				row = method.QueryRow("SELECT stream_status, stream_url FROM kvm WHERE hostname=?;", &tmp.Hostname)
-				err = row.Scan(&tmp.Record_status, &tmp.KVM_link)
-				if err != nil {
-					logger.Error("Search project info error: " + err.Error())
-				}
-				row = method.QueryRow("select time from errorlog where machine_name=? order by time desc limit 1", &tmp.Machine_name)
-				err = row.Scan(&tmp.Last_fail)
-				if err != nil {
-					tmp.Last_fail = "N/A"
-				}
-				Resp2.Duts = append(Resp2.Duts, tmp)
-			}
-			// Resp.Duts = append(Resp.Duts, tmp2)
-		}
-		apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp2)
-		return
 	} else {
-		rows, err := method.Query("SELECT hostname, machine_name, ip FROM debug_unit WHERE project=?;", project_name)
+		unitsInfo, err := unit_query.GetUnitsInfoByProject(projectName)
 		if err != nil {
-			logger.Error("Search project info error: " + err.Error())
+			logger.Error("Get units info by project error: " + err.Error())
+			c.JSON(500, gin.H{
+				"error": "Get units info by project error: " + err.Error(),
+			})
 		}
-		var tmp2 []Debug_unit_info
-		for rows.Next() {
-			var tmp Debug_unit_info
-			err = rows.Scan(&tmp.Hostname, &tmp.Machine_name, &tmp.Debug_host)
-			if err != nil {
-				logger.Error("Search project info error: " + err.Error())
-			}
-			row := method.QueryRow("SELECT status, lock_coord FROM machine WHERE machine_name=?;", &tmp.Machine_name)
-			err = row.Scan(&tmp.Status, &tmp.Lock_coord)
-			if err != nil {
-				logger.Error("Search project info error: " + err.Error())
-			}
-			row = method.QueryRow("SELECT stream_status, stream_url FROM kvm WHERE hostname=?;", &tmp.Hostname)
-			err = row.Scan(&tmp.Record_status, &tmp.KVM_link)
-			if err != nil {
-				logger.Error("Search project info error: " + err.Error())
-			}
-			row = method.QueryRow("select time from errorlog where machine_name=? order by time desc limit 1", &tmp.Machine_name)
-			err = row.Scan(&tmp.Last_fail)
-			if err != nil {
-				tmp.Last_fail = "N/A"
-			}
-			tmp2 = append(tmp2, tmp)
-		}
-		Resp.Duts = tmp2
+		res.Duts = unitsInfo
 	}
-	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
+	c.JSON(200, res)
 }
 
 func DownloadCsv(c *gin.Context) {
@@ -143,5 +183,41 @@ func DownloadCsv(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"url": url,
+	})
+}
+
+func LeaveProject(c *gin.Context) {
+	machine_name := c.Query("machine_name")
+	err := unit_query.LeaveProject(machine_name)
+	if err != nil {
+		logger.Error("Leave project error: " + err.Error())
+		c.JSON(500, gin.H{
+			"error": "Leave project error: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "Leave project success",
+	})
+}
+
+func JoinProject(c *gin.Context) {
+	var req joinRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		logger.Error("Bind json error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err = unit_query.JoinProject(req.ProjectName, req.Machines)
+	if err != nil {
+		logger.Error("Join project error: " + err.Error())
+		c.JSON(500, gin.H{
+			"error": "Join project error: " + err.Error(),
+		})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "success",
 	})
 }

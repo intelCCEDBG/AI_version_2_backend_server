@@ -11,6 +11,28 @@ import (
 	"time"
 )
 
+func GetAllProjects() ([]string, error) {
+	projects := make([]string, 0)
+	rows, err := method.Query("SELECT DISTINCT project_name FROM project;")
+	if err != nil {
+		logger.Error("Query project list error: " + err.Error())
+		return projects, err
+	}
+	for rows.Next() {
+		var tmp string
+		err = rows.Scan(&tmp)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				return projects, nil
+			}
+			logger.Error("Query project list error: " + err.Error())
+			return projects, err
+		}
+		projects = append(projects, tmp)
+	}
+	return projects, nil
+}
+
 func CreateProject(name, code string) error {
 	query := `
 		INSERT INTO project (project_name, short_name, owner, email_list, status, freeze_detection)
@@ -22,6 +44,21 @@ func CreateProject(name, code string) error {
 		return err
 	}
 	return nil
+}
+
+func ProjectNameExists(name string) (bool, error) {
+	// see if the project name exists
+	row := method.QueryRow("SELECT project_name FROM project WHERE project_name = ?", name)
+	var project string
+	err := row.Scan(&project)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return false, nil
+		}
+		logger.Error("Check project name error: " + err.Error())
+		return false, err
+	}
+	return true, nil
 }
 
 func ProjectCodeExists(code string) (bool, error) {

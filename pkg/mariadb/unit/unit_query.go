@@ -17,6 +17,50 @@ import (
 	"github.com/google/uuid"
 )
 
+func GetUnitsInfoByProject(projectName string) ([]structure.DebugUnitInfo, error) {
+	unitsInfo := []structure.DebugUnitInfo{}
+	rows, err := method.Query("SELECT machine_name, ip, hostname FROM debug_unit WHERE project = ?", projectName)
+	if err != nil {
+		logger.Error("Query units info by project error: " + err.Error())
+		return unitsInfo, err
+	}
+	for rows.Next() {
+		var unitInfo structure.DebugUnitInfo
+		err := rows.Scan(&unitInfo.MachineName, &unitInfo.DebugHost, &unitInfo.Hostname)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				return unitsInfo, nil
+			}
+			logger.Error("Scan units info by project error: " + err.Error())
+			return unitsInfo, err
+		}
+		row := method.QueryRow("SELECT status , lock_coord FROM machine WHERE machine_name = ?", unitInfo.MachineName)
+		err = row.Scan(&unitInfo.Status, &unitInfo.LockCoord)
+		if err != nil {
+			logger.Error("Scan machine status error: " + err.Error())
+			return unitsInfo, err
+		}
+		row = method.QueryRow("SELECT stream_status, stream_url FROM kvm WHERE hostname = ?", unitInfo.Hostname)
+		err = row.Scan(&unitInfo.RecordStatus, &unitInfo.KvmLink)
+		if err != nil {
+			logger.Error("Scan kvm status error: " + err.Error())
+			return unitsInfo, err
+		}
+		row = method.QueryRow("SELECT time FROM errorlog WHERE machine_name = ? ORDER BY time DESC LIMIT 1", unitInfo.MachineName)
+		err = row.Scan(&unitInfo.LastFail)
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				unitInfo.LastFail = "N/A"
+			} else {
+				logger.Error("Scan last fail error: " + err.Error())
+				return unitsInfo, err
+			}
+		}
+		unitsInfo = append(unitsInfo, unitInfo)
+	}
+	return unitsInfo, nil
+}
+
 func GetUnitByHostname(hostname string) structure.Unit {
 	var unit_template structure.Unit
 	UNIT, err := method.Query("SELECT machine_name,ip,hostname,project FROM debug_unit where hostname = " + "'" + hostname + "'")
@@ -33,20 +77,20 @@ func GetUnitByHostname(hostname string) structure.Unit {
 	return unit_template
 }
 
-func GetByMachine(machine_name string) structure.Unit {
-	var unit_template structure.Unit
-	unit, err := method.Query("SELECT machine_name, ip, hostname, project FROM debug_unit where machine_name = " + "'" + machine_name + "'")
+func GetByMachine(machineName string) structure.Unit {
+	var unitTemplate structure.Unit
+	unit, err := method.Query("SELECT machine_name, ip, hostname, project FROM debug_unit where machine_name = " + "'" + machineName + "'")
 	if err != nil {
-		logger.Error("Query Unit " + machine_name + " error: " + err.Error())
+		logger.Error("Query Unit " + machineName + " error: " + err.Error())
 	}
 	for unit.Next() {
-		err := unit.Scan(&unit_template.MachineName, &unit_template.Ip, &unit_template.Hostname, &unit_template.Project)
+		err := unit.Scan(&unitTemplate.MachineName, &unitTemplate.Ip, &unitTemplate.Hostname, &unitTemplate.Project)
 		if err != nil {
 			logger.Error(err.Error())
-			return unit_template
+			return unitTemplate
 		}
 	}
-	return unit_template
+	return unitTemplate
 }
 
 func CreateUnit(unit structure.Unit) (string, error) {
@@ -144,6 +188,7 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 			return "Check kvm hostname error: " + err.Error(), err
 		}
 		if exists {
+			tr.Rollback()
 			return "Kvm hostname already exists", nil
 		}
 		// create kvm
@@ -151,54 +196,40 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 			INSERT INTO kvm (hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`
-		_, err = tr.Exec(query, req.KvmHostname, req.KvmIp, req.KvmOwner, "null", 1, "null", "http://"+req.KvmIp+":8081", "recording", "null", 0)
+		_, err = tr.Exec(query, req.KvmHostname, req.KvmIp, req.KvmOwner, "null", 1, "null", "http://"+req.KvmIp+":8081", "idle", "null", 0)
 		if err != nil {
 			tr.Rollback()
 			return "Create kvm error: " + err.Error(), err
 		}
 	}
-	// create dut
+	// check dut
 	exists, err = dut_query.CheckDutExist(req.DutName)
 	if err != nil {
 		tr.Rollback()
 		return "Check dut name error: " + err.Error(), err
 	}
 	if !exists {
-		query := `
-			INSERT INTO machine (machine_name, ssim, status, cycle_cnt, cycle_cnt_high, error_timestamp, path, threshold, lock_coord)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-		_, err = tr.Exec(query, req.DutName, 80, 1, 0, 0, 0, "null", 15, "")
-		if err != nil {
-			tr.Rollback()
-			return "Create dut error: " + err.Error(), err
-		}
+		tr.Rollback()
+		return "Dut name not exists", nil
 	}
-	// create debug host
-	if req.DebugHostOwner != "" {
-		// check if debug host ip exists
-		exists, err := debughost_query.CheckDebugHostIP(req.DebugHostIP)
-		if err != nil {
-			tr.Rollback()
-			return "Check debug host ip error: " + err.Error(), err
-		}
-		if exists {
-			tr.Rollback()
-			return "Debug host ip already exists", nil
-		}
-		// create debug host
-		query = `
-			INSERT INTO debug_host (ip, hostname, owner)
-			VALUES (?, ?, ?)
-		`
-		_, err = tr.Exec(query, req.DebugHostIP, req.DebugHost, req.DebugHostOwner)
-		if err != nil {
-			tr.Rollback()
-			return "Create debug host error: " + err.Error(), err
-		}
+	// check debug host
+	exists, err = debughost_query.CheckDebugHostIPExist(req.DebugHostIP)
+	if err != nil {
+		tr.Rollback()
+		return "Check debug host ip error: " + err.Error(), err
+	}
+	if !exists {
+		tr.Rollback()
+		return "Debug host ip not exists", nil
 	}
 	// create debug unit
 	uuid := uuid.New().String()
+	query = `DELETE FROM debug_unit WHERE hostname = ? OR ip = ? OR machine_name = ?`
+	_, err = tr.Exec(query, req.KvmHostname, req.DebugHostIP, req.DutName)
+	if err != nil {
+		tr.Rollback()
+		return "Delete debug unit error: " + err.Error(), err
+	}
 	query = `
 		INSERT INTO debug_unit (uuid, machine_name, ip, hostname, project)
 		VALUES (?, ?, ?, ?, ?)
@@ -210,6 +241,32 @@ func CreateKvmUnit(req structure.CreateKvmUnitRequest) (string, error) {
 	}
 	tr.Commit()
 	return "Successfully Created, UUID: " + uuid, nil
+}
+
+func LeaveProject(dutName string) error {
+	_, err := method.Exec("UPDATE debug_unit SET project = 'null' WHERE machine_name = ?", dutName)
+	if err != nil {
+		logger.Error("Leave project error: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+func JoinProject(projectName string, duts []string) error {
+	tr, err := mariadb.DB.Begin()
+	if err != nil {
+		return err
+	}
+	for _, dut := range duts {
+		_, err := tr.Exec("UPDATE debug_unit SET project = ? WHERE machine_name = ?", projectName, dut)
+		if err != nil {
+			tr.Rollback()
+			logger.Error("Join project error: " + err.Error())
+			return err
+		}
+	}
+	tr.Commit()
+	return nil
 }
 
 func ExportAllToCsv() (string, error) {

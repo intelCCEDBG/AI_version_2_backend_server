@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"recorder/pkg/apiservice"
 	"recorder/pkg/logger"
+	debughost_query "recorder/pkg/mariadb/debughost"
 	"recorder/pkg/mariadb/method"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,33 @@ type DbgHost struct {
 	Ip       string `json:"ip"`
 	Hostname string `json:"hostname"`
 	Owner    string `json:"owner"`
+}
+
+func AddDbghost(c *gin.Context) {
+	var req DbgHost
+	err := c.BindJSON(&req)
+	if err != nil {
+		logger.Error("Bind json error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	exists, err := debughost_query.CheckDebugHostIPExist(req.Ip)
+	if err != nil {
+		logger.Error("Check debug host ip error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "debug host ip already exists"})
+		return
+	}
+	err = debughost_query.CreateDebugHost(req.Ip, req.Hostname, req.Owner)
+	if err != nil {
+		logger.Error("Create debug host error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "success"})
 }
 
 func DbgHostList(c *gin.Context) {
@@ -124,4 +152,14 @@ func Dbghost_modify(c *gin.Context) {
 		return
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
+}
+
+func CheckDbghostFree(c *gin.Context) {
+	dbgIp := c.Query("ip")
+	kvmHostname := c.Query("hostname")
+	free, err := debughost_query.CheckDebugHostFree(dbgIp, kvmHostname)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, gin.H{"free": free})
 }

@@ -36,6 +36,27 @@ type Dut struct {
 	Threshold      int    `json:"threshold"`
 }
 
+func AddDut(c *gin.Context) {
+	machineName := c.Query("dut")
+	exists, err := dut_query.CheckDutExist(machineName)
+	if err != nil {
+		logger.Error("Check dut exists error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "dut already exists"})
+		return
+	}
+	err = dut_query.CreateDut(machineName)
+	if err != nil {
+		logger.Error("Create dut error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "success"})
+}
+
 func DutList(c *gin.Context) {
 	extra := c.Query("extra")
 	var DutList DutListResponse
@@ -258,4 +279,15 @@ func FreezeCheck(c *gin.Context) {
 		msg = "Not Freezed"
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, msg)
+}
+
+func CheckDutFree(c *gin.Context) {
+	machineName := c.Query("dut")
+	kvmHostname := c.Query("kvm")
+	free, err := dut_query.CheckDutFree(machineName, kvmHostname)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"free": free})
 }

@@ -291,3 +291,25 @@ func Getstarttime(c *gin.Context) {
 	Resp := project_query.GetStartTime(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
+
+func CheckProject(c *gin.Context) {
+	checkType := c.Query("type")
+	switch checkType {
+	case "name":
+		projectName := c.Query("project")
+		exists, err := project_query.ProjectNameExists(projectName)
+		if err != nil {
+			logger.Error("Check project name error: " + err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{"exists": exists})
+	case "code":
+		projectCode := c.Query("code")
+		exists, err := project_query.ProjectCodeExists(projectCode)
+		if err != nil {
+			logger.Error("Check project code error: " + err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{"exists": exists})
+	}
+}

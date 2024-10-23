@@ -209,3 +209,21 @@ func CreateDut(machineName string) (err error) {
 	}
 	return nil
 }
+
+func CheckDutFree(machineName string, hostname string) (bool, error) {
+	// check if the debug host is paired with the another kvm
+	row := method.QueryRow("SELECT hostname FROM debug_unit WHERE machine_name = ?", machineName)
+	var pairedHostname string
+	err := row.Scan(&pairedHostname)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return true, nil
+		}
+		logger.Error("Check dut free error: " + err.Error())
+		return false, err
+	}
+	if hostname != pairedHostname {
+		return false, nil
+	}
+	return true, nil
+}

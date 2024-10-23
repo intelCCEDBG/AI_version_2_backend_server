@@ -38,6 +38,12 @@ type ApiResponse struct {
 	ResultMessage interface{}
 }
 
+type addKvmRequest struct {
+	Hostname string `json:"hostname"`
+	Ip       string `json:"ip"`
+	Owner    string `json:"owner"`
+}
+
 type Kvmlist_Response struct {
 	Hostname []string `json:"hostnames"`
 }
@@ -100,6 +106,33 @@ type Message struct {
 type Messages struct {
 	Hostname string   `json:"hostname"`
 	Messages []string `json:"message"`
+}
+
+func AddKvm(c *gin.Context) {
+	var req addKvmRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		logger.Error("Bind json error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	exists, err := kvm_query.KvmHostnameExists(req.Hostname)
+	if err != nil {
+		logger.Error("Check kvm hostname exists error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "kvm hostname already exists"})
+		return
+	}
+	err = kvm_query.CreateKvm(req.Ip, req.Hostname, req.Owner)
+	if err != nil {
+		logger.Error("Add kvm error: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "kvm added successfully"})
 }
 
 func Kvm_list(c *gin.Context) {
@@ -390,7 +423,7 @@ func KvmCsv2Db() {
 			var tmp2 string = line[2]
 			var tmp3 string = line[3]
 			var tmp4 string = line[4]
-			_, err = method.Exec("INSERT INTO kvm ( hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, tmp2, "null", tmp3, tmp4, "http://"+tmp1+":8081", "recording", "null", 0)
+			_, err = method.Exec("INSERT INTO kvm ( hostname, ip, owner, status, version, NAS_ip, stream_url, stream_status, stream_interface, start_record_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);", tmp0, tmp1, tmp2, "null", tmp3, tmp4, "http://"+tmp1+":8081", "idle", "null", 0)
 			if err != nil {
 				logger.Error(err.Error())
 			}
@@ -827,4 +860,14 @@ func DeleteKvm(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Delete kvm successfully"})
+}
+
+func CheckKvmHostname(c *gin.Context) {
+	hostname := c.Query("hostname")
+	exists, err := kvm_query.KvmHostnameExists(hostname)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"exists": exists})
 }
