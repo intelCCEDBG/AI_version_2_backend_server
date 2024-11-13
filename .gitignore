@@ -2,3 +2,4 @@
 *.csv
 logs/
 *.log
+config.env
