@@ -59,7 +59,6 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		"-codec", "libx264", "-preset", "ultrafast", "-g", "30", "-f", "hls", "-hls_time", "10", "-hls_list_size", "0", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
 		"-r", "0.3", "-update", "1", ramdisk_path+hostname+".png", "-r", "0.2", "-update", "1", slow_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
 	cmd2 := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url, "-vframes", "1", image_path+"cover.png")
-	// logger.Info(cmd.String())
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		logger.Error(err.Error())
@@ -68,7 +67,6 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	if err != nil {
 		logger.Error(err.Error())
 	}
-	// logger.Info("test1")
 	err = cmd.Start()
 	cmd2.Start()
 	mh.StartRecordTime = time.Now().Unix()
@@ -98,7 +96,6 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 
 func Get_picture_from_video(ts string, frame_index string, image_path string) error {
 	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", ts, "-vf", "select='eq(n\\,"+frame_index+")'", "-vsync", "vfr", image_path)
-	// logger.Info(cmd.String())
 	err := cmd.Run()
 	if err != nil {
 		logger.Error(err.Error())

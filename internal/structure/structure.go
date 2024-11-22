@@ -59,11 +59,12 @@ type Target struct {
 	Wait     int
 }
 type ResultMessage struct {
-	Hostname string    `json:"hostname"`
-	Label    int64     `json:"label"`
-	Coords   []float64 `json:"coords"`
-	Created  int64     `json:"created"`
-	Expire   int64     `json:"expire"`
+	Hostname    string    `json:"hostname"`
+	Label       int64     `json:"label"`
+	Coords      []float64 `json:"coords"`
+	Created     int64     `json:"created"`
+	Expire      int64     `json:"expire"`
+	PixelChange bool      `json:"pixel_change"`
 }
 type DUT struct {
 	MachineName  string  `json:"machine_name"`
@@ -71,8 +72,9 @@ type DUT struct {
 	CycleCnt     int     `json:"cycle"`
 	CycleCntHigh int     `json:"cycle_high"`
 	Status       int     `json:"status"`
-	Threshhold   int     `json:"threshold"`
+	Threshold    int     `json:"threshold"`
 	LockCoord    string  `json:"lock_coord"`
+	PixelChange  int     `json:"pixel_change"`
 }
 type Unit struct {
 	Hostname    string
@@ -94,15 +96,18 @@ type UnitDetail struct {
 
 // Status 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: FREEZE
 const (
+	// AI Label
 	BSOD_LABEL    int = 0
 	BLACK_LABEL   int = 1
 	RESTART_LABEL int = 2
 	NORMAL_LABEL  int = 3
-	BSOD          int = 0
-	BLACK         int = 1
-	RESTART       int = 2
-	FREEZE        int = 3
-	NORMAL        int = 4
+	NONBSOD_LABEL int = 4
+	// DUT Status
+	BSOD    int = 0
+	BLACK   int = 1
+	RESTART int = 2
+	FREEZE  int = 3
+	NORMAL  int = 10
 )
 
 type AiResult struct {

@@ -15,7 +15,7 @@ func UpdateDutStatus(machineName string, status int) {
 	}
 }
 
-func UpdateAIResult(machineName string, status int64, coords []float64) {
+func UpdateAIResult(machineName string, status int64, coords []float64, pixelChange bool) {
 	coordsStr := ""
 	for i := 0; i < len(coords); i++ {
 		coordsStr += strconv.FormatFloat(coords[i], 'f', 6, 64)
@@ -27,6 +27,12 @@ func UpdateAIResult(machineName string, status int64, coords []float64) {
 	_, err := method.Exec("REPLACE INTO ai_result (machine_name, status, coords, time) VALUES (?, ?, ?, ?)", machineName, status, coordsStr, curTime)
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
+	}
+	if pixelChange == true {
+		_, err = method.Exec("UPDATE machine SET pixel_change = pixel_change + 1 WHERE machine_name = ?", machineName)
+		if err != nil {
+			logger.Error("Update pixel change error: " + err.Error())
+		}
 	}
 }
 
@@ -97,6 +103,13 @@ func UpdateDutCycleCntHigh(machineName string, cnt int) {
 	}
 }
 
+func UpdateDutPixelChange(machineName string, cnt int) {
+	_, err := method.Exec("UPDATE machine SET pixel_change = ? WHERE machine_name = ?", cnt, machineName)
+	if err != nil {
+		logger.Error("Update DUT status error: " + err.Error())
+	}
+}
+
 func UpdateLockCoord(machineName string, coord string) {
 	_, err := method.Exec("UPDATE machine SET lock_coord = ? WHERE machine_name = ?", coord, machineName)
 	if err != nil {
@@ -104,14 +117,20 @@ func UpdateLockCoord(machineName string, coord string) {
 	}
 }
 
+func ResetDutStatus(machineName string) {
+	UpdateDutCycleCnt(machineName, 0)
+	UpdateDutCycleCntHigh(machineName, 0)
+	UpdateDutPixelChange(machineName, 0)
+}
+
 func GetDutStatus(machineName string) (dut_template structure.DUT) {
-	KVM, err := method.Query("SELECT machine_name,ssim,cycle_cnt,cycle_cnt_high, status,threshold,lock_coord FROM machine where machine_name =" + "'" + machineName + "'")
+	KVM, err := method.Query("SELECT machine_name, ssim,cycle_cnt, cycle_cnt_high, status, threshold, lock_coord, pixel_change FROM machine where machine_name =" + "'" + machineName + "'")
 	if err != nil {
 		logger.Error("Query DUT " + machineName + " error: " + err.Error())
 	}
 	dut_template.MachineName = "null"
 	for KVM.Next() {
-		err := KVM.Scan(&dut_template.MachineName, &dut_template.Ssim, &dut_template.CycleCnt, &dut_template.CycleCntHigh, &dut_template.Status, &dut_template.Threshhold, &dut_template.LockCoord)
+		err := KVM.Scan(&dut_template.MachineName, &dut_template.Ssim, &dut_template.CycleCnt, &dut_template.CycleCntHigh, &dut_template.Status, &dut_template.Threshold, &dut_template.LockCoord, &dut_template.PixelChange)
 		if err != nil {
 			logger.Error(err.Error())
 			return dut_template
@@ -127,7 +146,7 @@ func GetAllDutStatus() (dutTemplate []structure.DUT) {
 	}
 	for KVM.Next() {
 		var dut structure.DUT
-		err := KVM.Scan(&dut.MachineName, &dut.Ssim, &dut.CycleCnt, &dut.CycleCntHigh, &dut.Status, &dut.Threshhold, &dut.LockCoord)
+		err := KVM.Scan(&dut.MachineName, &dut.Ssim, &dut.CycleCnt, &dut.CycleCntHigh, &dut.Status, &dut.Threshold, &dut.LockCoord)
 		if err != nil {
 			logger.Error(err.Error())
 			return dutTemplate

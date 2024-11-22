@@ -353,5 +353,6 @@ func ExportAllToCsv() (string, error) {
 		logger.Error("Zip all csv files error: " + err.Error())
 		return "", err
 	}
-	return "https://10.227.106.11:8000/csv/" + currentDate + "_mapping.zip", nil
+	result_url := fmt.Sprintf("https://%s:%s/csv/%s_mapping.zip", config.Viper.GetString("SERVER_IP"), config.Viper.GetString("SERVER_SOURCE_PORT"), currentDate)
+	return result_url, nil
 }

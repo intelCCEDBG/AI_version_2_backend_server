@@ -22,7 +22,6 @@ var channelmapsmutex *sync.Mutex
 var usedmutex *sync.Mutex
 
 func init() {
-
 	LogPicChannel_channel = make(map[string]*LogPicChannel)
 	mutexmap = make(map[string]*sync.Mutex)
 	mutexused = make(map[string]bool)
@@ -78,7 +77,7 @@ func SendtoLogPicChannel(key string, value image.Image) error {
 		}
 		amount, _ := strconv.Atoi(config.Viper.GetString("log_img_amount"))
 		amount = amount/2 + 1
-		AddNewLogPicChannel(key, (dut.Threshhold*12)+amount)
+		AddNewLogPicChannel(key, (dut.Threshold*12)+amount)
 	}
 	channel = GetLogPicChannel(key)
 	BlockLogPicChannel(key)
@@ -138,7 +137,7 @@ func RenewThreshold(key string) error {
 	amount = amount/2 + 1
 	channelmapsmutex.Lock()
 	defer channelmapsmutex.Unlock()
-	LogPicChannel_channel[key] = NewLogPicChannel(dut.Threshhold*12 + amount)
+	LogPicChannel_channel[key] = NewLogPicChannel(dut.Threshold*12 + amount)
 	return nil
 }
 

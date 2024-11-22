@@ -12,7 +12,8 @@ import (
 )
 
 func GenerateVideo(hour int, minute int, duration int, hostname string, filename string) {
-	files, err := os.ReadDir("/home/media/video/" + hostname + "/")
+	videoPath := config.Viper.GetString("recording_path")
+	files, err := os.ReadDir(videoPath + hostname + "/")
 	if err != nil {
 		logger.Error("List video dir fail: " + err.Error())
 	}
@@ -25,7 +26,7 @@ func GenerateVideo(hour int, minute int, duration int, hostname string, filename
 		filenames = append(filenames, file.Name())
 	}
 	sort.Strings(filenames)
-	f, err := os.OpenFile("/home/media/video/"+hostname+"/"+filename+".m3u8", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 644)
+	f, err := os.OpenFile(videoPath+hostname+"/"+filename+".m3u8", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 644)
 	if err != nil {
 		logger.Error("open video file fail: " + err.Error())
 		return

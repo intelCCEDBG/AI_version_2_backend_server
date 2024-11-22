@@ -52,13 +52,11 @@ func FS_monitor_ramdisk(ctx context.Context) {
 	for {
 		select {
 		case event, ok := <-watcher.Events:
-			// logger.Info("Get event!")
 			if !ok {
 				return
 			}
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				filename := filepath.Base(event.Name)
-				// logger.Info("modified file:" + filename)
 				hostname := filename[:len(filename)-4]
 				unit := unit_query.GetUnitByHostname(hostname)
 				sta := dut_query.GetDutStatus(unit.MachineName)

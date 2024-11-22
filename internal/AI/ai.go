@@ -23,7 +23,6 @@ import (
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	kvm_query "recorder/pkg/mariadb/kvm"
 	project_query "recorder/pkg/mariadb/project"
-	unit_query "recorder/pkg/mariadb/unit"
 	"recorder/pkg/rabbitmq"
 	"recorder/pkg/redis"
 	"strconv"
@@ -40,7 +39,6 @@ type Message struct {
 	Image       string    `json:"image"`
 	Coord       []float64 `json:"coord"`
 	Locked      int       `json:"locked"`
-	// Path     string `json:"path"`
 }
 
 func Start_ai_monitoring(ctx context.Context) {
@@ -59,9 +57,8 @@ func ProcessAIResult(hostname string, machineName string) {
 	// see if the kvm is holding
 	key := redis.RedisGetByPattern("kvm:" + hostname + ":holding")
 	if len(key) != 0 {
-		dut_query.UpdateDutCycleCnt(machineName, 0)
-		dut_query.UpdateDutCycleCntHigh(machineName, 0)
-		dut_query.UpdateDutStatus(machineName, 4)
+		dut_query.ResetDutStatus(machineName)
+		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
 		return
 	}
 	// see if the kvm is checking (pressing windows key)
@@ -76,7 +73,7 @@ func ProcessAIResult(hostname string, machineName string) {
 		return
 	}
 	if len(AIResult.Coords) == 0 { // if unlocked
-		dut_query.UpdateDutStatus(machineName, 4)
+		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
 		return
 	}
 	slowPath := config.Viper.GetString("slow_path")
@@ -104,69 +101,74 @@ func ProcessAIResult(hostname string, machineName string) {
 	if len(dutInfo.LockCoord) == 0 {
 		return
 	}
-	unit := unit_query.GetUnitByHostname(hostname)
 
 	// update cycle count high (for cursor flash detection)
-	upperBound := project_query.GetUpperBound(unit.Project)
-	if ssimResult*100 >= float64(upperBound) {
-		dut_query.UpdateDutCycleCntHigh(machineName, dutInfo.CycleCntHigh+1)
-		dutInfo.CycleCntHigh++
-	} else {
-		dutInfo.CycleCntHigh -= 3
-		if (dutInfo.CycleCntHigh) < 0 {
-			dutInfo.CycleCntHigh = 0
-		}
-		dut_query.UpdateDutCycleCntHigh(machineName, dutInfo.CycleCntHigh)
-	}
+	// unit := unit_query.GetUnitByHostname(hostname)
+	// upperBound := project_query.GetUpperBound(unit.Project)
+	// if ssimResult*100 >= float64(upperBound) {
+	// 	dut_query.UpdateDutCycleCntHigh(machineName, dutInfo.CycleCntHigh+1)
+	// 	dutInfo.CycleCntHigh++
+	// } else {
+	// 	dutInfo.CycleCntHigh -= 3
+	// 	if (dutInfo.CycleCntHigh) < 0 {
+	// 		dutInfo.CycleCntHigh = 0
+	// 	}
+	// 	dut_query.UpdateDutCycleCntHigh(machineName, dutInfo.CycleCntHigh)
+	// }
+
 	// update cycle count (for normal freeze)
 	if ssimResult*100 >= dutInfo.Ssim {
 		dut_query.UpdateDutCycleCnt(machineName, dutInfo.CycleCnt+1)
 		dutInfo.CycleCnt++
 	} else {
-		dut_query.UpdateDutCycleCnt(machineName, 0)
-		dut_query.UpdateDutCycleCntHigh(machineName, 0)
+		dut_query.ResetDutStatus(machineName)
 		return
 	}
 
-	// Label 0: BSOD 1: BLACK 2: RESTART 3: NORMAL
-	// Status 0: BSOD 1: BLACK 2: RESTART 3: FREEZE 4: NORMAL
+	// Label 0: BSOD 1: BLACK 2: RESTART 3: NORMAL 4: NON-BSOD
+	// Status 0: BSOD 1: BLACK 2: RESTART 3: FREEZE ... 10: NORMAL
 	switch AIResult.Label {
 	case structure.BSOD_LABEL:
 		dut_query.UpdateDutStatus(machineName, structure.BSOD)
-		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+		if dutInfo.CycleCnt == dutInfo.Threshold*12 {
 			logger.Debug("Machine " + machineName + " Freeze Detected, Status: BSOD")
-			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
+			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshold)
 		}
 	case structure.BLACK_LABEL:
 		dut_query.UpdateDutStatus(machineName, structure.BLACK)
-		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+		if dutInfo.CycleCnt == dutInfo.Threshold*12 {
 			logger.Debug("Machine " + machineName + " Freeze Detected, Status: BLACK")
-			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
+			freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshold)
 		}
 	case structure.RESTART_LABEL:
 		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
-		if dutInfo.CycleCnt == dutInfo.Threshhold*12 {
+		if dutInfo.CycleCnt == dutInfo.Threshold*12 {
 			logger.Debug("Machine " + machineName + " Freeze Detected, Status: RESTART")
 			dut_query.UpdateDutStatus(machineName, structure.FREEZE)
-			freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshhold)
+			freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshold)
 		}
-	case structure.NORMAL_LABEL:
-		if dutInfo.CycleCnt >= dutInfo.Threshhold*12 && dutInfo.CycleCntHigh > dutInfo.Threshhold*10 {
-			dut_query.UpdateDutStatus(machineName, structure.FREEZE)
-			if dutInfo.Status == structure.NORMAL {
-				logger.Warn("Machine " + machineName + " Windows Key Freeze Check!")
-				freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
-				if err != nil {
-					logger.Error("Error doing windows key freeze check: " + err.Error())
-				}
-				if freezed {
-					logger.Debug("Machine " + machineName + " Freeze Detected, Status: NORMAL")
-					freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshhold)
-				} else {
-					logger.Warn("Machine " + machineName + " Recovered From Press Windows Key")
-					dut_query.UpdateDutCycleCnt(machineName, 0)
-					dut_query.UpdateDutCycleCntHigh(machineName, 0)
-					dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+	case structure.NORMAL_LABEL, structure.NONBSOD_LABEL:
+		if dutInfo.CycleCnt >= dutInfo.Threshold*12 {
+			if dutInfo.PixelChange > 10 {
+				logger.Debug("Machine " + machineName + " Pixel Change Detected, Pixel Change: " + strconv.Itoa(dutInfo.PixelChange))
+				dut_query.ResetDutStatus(machineName)
+				dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+			} else {
+				dut_query.UpdateDutStatus(machineName, structure.FREEZE)
+				if dutInfo.Status == structure.NORMAL {
+					logger.Warn("Machine " + machineName + " Windows Key Freeze Check!")
+					freezed, err := FreezeCheck(machineName, AIResult.Coords, KVM)
+					if err != nil {
+						logger.Error("Error doing windows key freeze check: " + err.Error())
+					}
+					if freezed {
+						logger.Debug("Machine " + machineName + " Freeze Detected, Status: NORMAL")
+						freezeProcess(machineName, AIResult.Label, KVM, dutInfo.Threshold)
+					} else {
+						logger.Warn("Machine " + machineName + " Recovered From Press Windows Key")
+						dut_query.ResetDutStatus(machineName)
+						dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+					}
 				}
 			}
 		} else {
