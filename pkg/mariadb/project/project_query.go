@@ -188,7 +188,7 @@ func Get_Units(project string) []structure.UnitDetail {
 			logger.Error(err.Error())
 			return UNITS
 		}
-		Detail := method.QueryRow("SELECT test_item, sku, image, bios, config FROM machine_status where machine_name=?", Tmp)
+		Detail := method.QueryRow("SELECT test_item, sku, image, bios, config FROM machine_status where machine_name = ?", Tmp)
 		err = Detail.Scan(&unit.TestItem, &unit.Sku, &unit.Image, &unit.Bios, &unit.Config)
 		if err != nil {
 			logger.Error(err.Error())

@@ -58,6 +58,9 @@ func GenerateVideo(hour int, minute int, duration int, hostname string, filename
 	for ii, filename := range filenames {
 		if strings.Contains(filename, datestring+"_"+h+"-"+m) {
 			for i := 0; i < duration/10; i++ {
+				if ii+i >= len(filenames) {
+					break
+				}
 				f.WriteString("#EXTINF:10.000000,\n")
 				f.WriteString(filenames[ii+i] + "\n")
 			}

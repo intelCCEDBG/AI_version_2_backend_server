@@ -34,8 +34,8 @@ func GetUnitsInfoByProject(projectName string) ([]structure.DebugUnitInfo, error
 			logger.Error("Scan units info by project error: " + err.Error())
 			return unitsInfo, err
 		}
-		row := method.QueryRow("SELECT status , lock_coord FROM machine WHERE machine_name = ?", unitInfo.MachineName)
-		err = row.Scan(&unitInfo.Status, &unitInfo.LockCoord)
+		row := method.QueryRow("SELECT status, lock_coord, high_frame_rate FROM machine WHERE machine_name = ?", unitInfo.MachineName)
+		err = row.Scan(&unitInfo.Status, &unitInfo.LockCoord, &unitInfo.HighFrameRate)
 		if err != nil {
 			logger.Error("Scan machine status error: " + err.Error())
 			return unitsInfo, err

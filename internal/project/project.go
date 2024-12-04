@@ -1,0 +1,4 @@
+package project
+
+func Start() {
+}

@@ -23,8 +23,6 @@ func init() {
 func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 	hostname := mh.Hostname
 	url := mh.StreamUrl
-	// unit := unit_query.Get_unitbyhostname(hostname)
-	// query.Update_kvm_status(hostname, "recording")
 	video_path := config.Viper.GetString("RECORDING_PATH") + hostname + "/"
 	image_path := config.Viper.GetString("IMAGE_PATH") + hostname + "/"
 	ramdisk_path := config.Viper.GetString("RAMDISK_PATH")
@@ -39,7 +37,6 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		// TODO: handle error
 	}
 	err = os.RemoveAll(image_path)
 	if err != nil {
@@ -51,7 +48,6 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		if err != nil {
 			logger.Error(err.Error())
 		}
-		// TODO: handle error
 	}
 	dut_query.SetDutStatusFromKvm(4, mh)
 	reso := "scale=320:180"

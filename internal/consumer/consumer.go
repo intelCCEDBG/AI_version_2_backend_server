@@ -38,7 +38,6 @@ func Start_consumer() {
 			logger.Error(err.Error())
 		} else {
 			dut_query.UpdateAIResult(data.Hostname, data.Label, data.Coords, data.PixelChange)
-			// logger.Info("Received from AI: " + data.Hostname)
 		}
 	}
 }

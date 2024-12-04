@@ -12,6 +12,7 @@ import (
 func CropImage(inputImagePath string, coordinates []float64, outputImagePath string) (image.Image, error) {
 	file, err := os.Open(inputImagePath)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, err
 	}
 	defer file.Close()
@@ -19,6 +20,7 @@ func CropImage(inputImagePath string, coordinates []float64, outputImagePath str
 	// Decode the input image file
 	img, _, err := image.Decode(file)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, err
 	}
 
@@ -41,6 +43,7 @@ func CropImage(inputImagePath string, coordinates []float64, outputImagePath str
 	// Create an output file to save the cropped image as a PNG file
 	outputFile, err := os.Create(outputImagePath)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, err
 	}
 	defer outputFile.Close()
@@ -48,6 +51,7 @@ func CropImage(inputImagePath string, coordinates []float64, outputImagePath str
 	// Encode and save the cropped image to a PNG file
 	err = png.Encode(outputFile, croppedImg)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, err
 	}
 

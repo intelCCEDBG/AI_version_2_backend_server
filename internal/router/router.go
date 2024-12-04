@@ -85,6 +85,7 @@ func Start_backend() {
 	router.GET("/api/dut/errorlog", dut_api.DutErrorlog)
 	router.GET("/api/dut/seterrorlog", dut_api.SetDutErrorlog)
 	router.POST("/api/dut/setmachinestatus", dut_api.SetDutMachineStatus)
+	router.GET("/api/dut/sethighframerate", dut_api.SetDutHighFrameRate)
 	router.GET("/api/dut/deleteErrorlog", dut_api.DutDeleteErrorlog)
 	router.GET("/api/dut/deleteErrorlogbyproject", dut_api.DutDeleteErrorlogProject)
 

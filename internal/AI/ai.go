@@ -147,7 +147,13 @@ func ProcessAIResult(hostname string, machineName string) {
 			dut_query.UpdateDutStatus(machineName, structure.FREEZE)
 			freezeProcess(machineName, structure.FREEZE, KVM, dutInfo.Threshold)
 		}
-	case structure.NORMAL_LABEL, structure.NONBSOD_LABEL:
+	case structure.NONBSOD_LABEL:
+		dut_query.UpdateDutStatus(machineName, structure.NORMAL)
+		if dutInfo.CycleCnt == dutInfo.Threshold*12 {
+			logger.Debug("Machine " + machineName + " Freeze for NON-BSOD ignored")
+			dut_query.ResetDutStatus(machineName)
+		}
+	case structure.NORMAL_LABEL:
 		if dutInfo.CycleCnt >= dutInfo.Threshold*12 {
 			if dutInfo.PixelChange > 10 {
 				logger.Debug("Machine " + machineName + " Pixel Change Detected, Pixel Change: " + strconv.Itoa(dutInfo.PixelChange))

@@ -15,6 +15,15 @@ func UpdateDutStatus(machineName string, status int) {
 	}
 }
 
+func UpdateDutFramerateSetting(machineName string, status bool) error {
+	_, err := method.Exec("UPDATE machine SET high_frame_rate = ? WHERE machine_name = ?", status, machineName)
+	if err != nil {
+		logger.Error("Update DUT status error: " + err.Error())
+		return err
+	}
+	return nil
+}
+
 func UpdateAIResult(machineName string, status int64, coords []float64, pixelChange bool) {
 	coordsStr := ""
 	for i := 0; i < len(coords); i++ {
@@ -28,7 +37,7 @@ func UpdateAIResult(machineName string, status int64, coords []float64, pixelCha
 	if err != nil {
 		logger.Error("Update AI result error: " + err.Error())
 	}
-	if pixelChange == true {
+	if pixelChange {
 		_, err = method.Exec("UPDATE machine SET pixel_change = pixel_change + 1 WHERE machine_name = ?", machineName)
 		if err != nil {
 			logger.Error("Update pixel change error: " + err.Error())

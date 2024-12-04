@@ -6,8 +6,7 @@ import (
 	"recorder/internal/ssim"
 	errorlog_query "recorder/pkg/mariadb/errrorlog"
 	"time"
-
-	"github.com/miekg/dns"
+	// "github.com/miekg/dns"
 )
 
 func ssimtest(image1, image2 string) {
@@ -34,7 +33,7 @@ func capture(times int, streamUrl string, path string) {
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 	fmt.Println("Finish capturing from", streamUrl)
 }
@@ -53,39 +52,37 @@ func main() {
 	// }
 
 	// Set the IP address you want to resolve
-	ip := "10.5.238.12"
-	ptrIP, err := dns.ReverseAddr(ip)
-	c := new(dns.Client)
-	m := new(dns.Msg)
-	m.SetQuestion(ptrIP, dns.TypePTR)
-	r, t, err := c.Exchange(m, "10.248.2.1:53")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Printf("Query time: %v\n", t)
-	if len(r.Answer) == 0 {
-		fmt.Println("No PTR records found")
-		return
-	}
-	for _, ans := range r.Answer {
-		if ptr, ok := ans.(*dns.PTR); ok {
-			fmt.Println("Hostname:", ptr.Ptr)
-		}
-	}
-
-	// datasetPath := "../one_on_one_plan/cursor/dataset/"
-	// // streams := []string{"http://10.5.238.52:8081", "http://10.5.238.80:8081"}
-	// duts := []string{"18F_24"}
-	// timeLength := 5 * time.Minute
-
-	// for i, stream := range streams {
-	// 	machine := "21F_R7B2"
-	// 	if i == 0 {
-	// 		machine = "21F_R5A2"
-	// 	}
-	// 	capture(int(timeLength.Seconds()), stream, datasetPath+machine+"/")
+	// ip := "10.5.238.12"
+	// ptrIP, err := dns.ReverseAddr(ip)
+	// c := new(dns.Client)
+	// m := new(dns.Msg)
+	// m.SetQuestion(ptrIP, dns.TypePTR)
+	// r, t, err := c.Exchange(m, "10.248.2.1:53")
+	// if err != nil {
+	// 	fmt.Println("Error:", err)
+	// 	return
 	// }
+	// fmt.Printf("Query time: %v\n", t)
+	// if len(r.Answer) == 0 {
+	// 	fmt.Println("No PTR records found")
+	// 	return
+	// }
+	// for _, ans := range r.Answer {
+	// 	if ptr, ok := ans.(*dns.PTR); ok {
+	// 		fmt.Println("Hostname:", ptr.Ptr)
+	// 	}
+	// }
+
+	datasetPath := "/home/ccedbg/ai_surveillance_v2/cursor/dataset/"
+	// streams := []string{"http://10.5.254.152:8081", "http://10.5.254.132:8081"}
+	// duts := []string{"B086_A1", "B081_A1"}
+	streams := []string{"http://10.5.254.132:8081"}
+	duts := []string{"B081_A1"}
+	timeLength := 2 * time.Minute
+
+	for i, stream := range streams {
+		capture(int(timeLength.Seconds()), stream, datasetPath+duts[i]+"/")
+	}
 
 	// for _, dut := range duts {
 	// 	// make sure the dataset folder exists
