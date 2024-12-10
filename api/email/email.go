@@ -102,7 +102,7 @@ func Report(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Report)
 }
-func Enable_mail_constraint(c *gin.Context) {
+func EnableMailConstraint(c *gin.Context) {
 	Project := c.Query("project")
 	Enable := c.Query("enable")
 	enable, _ := strconv.Atoi(Enable)

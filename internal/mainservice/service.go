@@ -90,7 +90,7 @@ func monitor_start_signal() {
 				logger.Info(hostname + " start recording")
 				ctx, cancel := context.WithCancel(context.Background())
 				Stop_channel[hostname] = cancel
-				Kvm := kvm_query.GetKvmStatus(hostname)
+				Kvm := kvm_query.GetStatus(hostname)
 				time.Sleep(5 * time.Second)
 				go ffmpeg.Record(Stop_signal_out_channel, Kvm, ctx)
 				go record_buffer(hostname)
@@ -108,7 +108,7 @@ func servershutdown(Connection_close chan int) {
 	Connection_close <- 1
 }
 func get_recording_kvm_back() {
-	kvms := kvm_query.Get_recording_kvms()
+	kvms := kvm_query.GetRecordingKvms()
 	for _, element := range kvms {
 		ctx, cancel := context.WithCancel(context.Background())
 		Stop_channel[element.Hostname] = cancel

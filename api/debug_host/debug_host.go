@@ -101,7 +101,7 @@ func DbghostFreeList(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, dbghostList)
 }
 
-func Dbghost_all_info(c *gin.Context) {
+func DbghostAllInfo(c *gin.Context) {
 	var Dbg_info_list []DbgHost
 	rows, err := method.Query("SELECT * FROM debug_host;")
 	if err != nil {
@@ -131,7 +131,7 @@ func Dbghost_info(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
-func Dbghost_search(c *gin.Context) {
+func DbghostSearch(c *gin.Context) {
 	ip := c.Query("ip")
 	var res apiservice.DebugUnit
 	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE ip=?", ip)
@@ -142,7 +142,7 @@ func Dbghost_search(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 
-func Dbghost_modify(c *gin.Context) {
+func DbghostModify(c *gin.Context) {
 	ip := c.Query("ip")
 	owner := c.Query("owner")
 	_, err := method.Exec("UPDATE debug_host SET owner=? WHERE ip=?", owner, ip)

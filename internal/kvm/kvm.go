@@ -31,32 +31,32 @@ type event struct {
 func RecordtoIdle(hostname string) {
 	// Idle_kvm[hostname] = Recording_kvm[hostname]
 	// delete(Recording_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "idle")
+	kvm_query.UpdateStatus(hostname, "idle")
 }
 func ErrortoIdle(hostname string) {
 	// Idle_kvm[hostname] = Error_kvm[hostname]
 	// delete(Error_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "idle")
+	kvm_query.UpdateStatus(hostname, "idle")
 }
 func ErrortoRecord(hostname string) {
 	// Recording_kvm[hostname] = Error_kvm[hostname]
 	// delete(Error_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "recording")
+	kvm_query.UpdateStatus(hostname, "recording")
 }
 func IdletoError(hostname string) {
 	// Error_kvm[hostname] = Idle_kvm[hostname]
 	// delete(Idle_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "error")
+	kvm_query.UpdateStatus(hostname, "error")
 }
 func RecordtoError(hostname string) {
 	// Error_kvm[hostname] = Recording_kvm[hostname]
 	// delete(Recording_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "error")
+	kvm_query.UpdateStatus(hostname, "error")
 }
 func IdletoRecord(hostname string) {
 	// Recording_kvm[hostname] = Idle_kvm[hostname]
 	// delete(Idle_kvm, hostname)
-	kvm_query.Update_kvm_status(hostname, "recording")
+	kvm_query.UpdateStatus(hostname, "recording")
 }
 
 func SwitchStreamStatus(ip, status string) {

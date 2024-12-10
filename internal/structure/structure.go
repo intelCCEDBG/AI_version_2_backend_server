@@ -13,15 +13,15 @@ type User struct {
 }
 
 type DebugUnitInfo struct {
-	Hostname      string `json:"hostname"`
-	MachineName   string `json:"machine_name"`
-	KvmLink       string `json:"stream_url"`
-	RecordStatus  string `json:"record_status"`
-	LockCoord     string `json:"lock_coord"`
-	Status        string `json:"status"`
-	DebugHost     string `json:"debug_host"`
-	LastFail      string `json:"last_fail"`
-	HighFrameRate bool   `json:"high_frame_rate"`
+	Hostname     string `json:"hostname"`
+	MachineName  string `json:"machine_name"`
+	KvmLink      string `json:"stream_url"`
+	RecordStatus string `json:"record_status"`
+	LockCoord    string `json:"lock_coord"`
+	Status       string `json:"status"`
+	DebugHost    string `json:"debug_host"`
+	LastFail     string `json:"last_fail"`
+	HighFPS      bool   `json:"high_fps"`
 }
 
 type DebugUnitDetail struct {
@@ -52,6 +52,7 @@ type Kvm struct {
 	StreamStatus    string `json:"status"`
 	StreamInterface string `json:"interface"`
 	StartRecordTime int64  `json:"start"`
+	HighFrameRate   bool   `json:"high_frame_rate"`
 }
 type Target struct {
 	Hostname string

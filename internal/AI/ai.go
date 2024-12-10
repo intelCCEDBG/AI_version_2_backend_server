@@ -66,7 +66,7 @@ func ProcessAIResult(hostname string, machineName string) {
 	if len(key) != 0 {
 		return
 	}
-	KVM := kvm_query.GetKvmStatus(hostname)
+	KVM := kvm_query.GetStatus(hostname)
 	AIResult := dut_query.GetAiResult(machineName)
 	if AIResult.Hostname == "null" { // if no hostname
 		logger.Debug("Machine " + machineName + " not found in database. ") //This may happen when camera did not catch anything.

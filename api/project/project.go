@@ -49,7 +49,7 @@ type Report_State struct {
 	Total int   `json:"total"`
 }
 
-func Get_Project_setting(c *gin.Context) {
+func GetProjectSetting(c *gin.Context) {
 	var Project_setting_out structure.ProjectTemplate
 	project_name := c.Query("project_name")
 	rows, err := method.Query("SELECT project_name,short_name,owner,email_list FROM project WHERE project_name=?;", project_name)
@@ -69,7 +69,7 @@ func Get_Project_setting(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 }
-func Get_Project_setting_by_code(c *gin.Context) {
+func GetProjectSettingByCode(c *gin.Context) {
 	var Out_Email []structure.EmailTemplate
 	var Out_email_template structure.EmailTemplate
 	var Project_setting_out structure.ProjectTemplate
@@ -101,7 +101,7 @@ func Get_Project_setting_by_code(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Project_setting_out)
 }
-func Set_Project_setting(c *gin.Context) {
+func SetProjectSetting(c *gin.Context) {
 	var Project_setting_in In_Project_tamplate
 	var Update_project_tamplate structure.ProjectTemplate
 	body, err := io.ReadAll(c.Request.Body)
@@ -155,7 +155,7 @@ func Union(a, b []string) []string {
 	}
 	return a
 }
-func Freeze_detection(c *gin.Context) {
+func FreezeDetection(c *gin.Context) {
 	action := c.Query("action")
 	project_name := c.Query("project_name")
 	switches := c.Query("switch")
@@ -235,7 +235,7 @@ func Control(c *gin.Context) {
 	response := ApiResponse{"200", ""}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, response)
 }
-func Get_Project_Floor(c *gin.Context) {
+func GetProjectFloor(c *gin.Context) {
 	var Floor_out Project_floor
 	Floor_map := project_query.Get_all_Floor()
 	for floor := range Floor_map {
@@ -244,12 +244,12 @@ func Get_Project_Floor(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Floor_out)
 }
-func Get_Report_State(c *gin.Context) {
+func GetReportState(c *gin.Context) {
 	project := c.Query("project")
 	Resp := project_query.Get_Units(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
-func Add_new_project(c *gin.Context) {
+func AddNewProject(c *gin.Context) {
 	project := c.Query("project")
 	codename := c.Query("codename")
 	create_new_project(project, codename)
@@ -261,12 +261,12 @@ func create_new_project(project_name string, codename string) {
 		logger.Error("INSERT project error: " + err.Error())
 	}
 }
-func Get_ssim_and_threshold(c *gin.Context) {
+func GetSsimAndThreshold(c *gin.Context) {
 	project := c.Query("project")
 	Resp := project_query.Get_ssim_and_threshold(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)
 }
-func Update_ssim_and_threshold(c *gin.Context) {
+func UpdateSsimAndThreshold(c *gin.Context) {
 	var Resp structure.SsimAndThreshold
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
@@ -280,13 +280,13 @@ func Update_ssim_and_threshold(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Delete_project(c *gin.Context) {
+func DeleteProject(c *gin.Context) {
 	project := c.Query("project")
 	project_query.Delete_project(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Getstarttime(c *gin.Context) {
+func GetStartTime(c *gin.Context) {
 	project := c.Query("project")
 	Resp := project_query.GetStartTime(project)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Resp)

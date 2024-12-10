@@ -35,36 +35,45 @@ func CreateKvm(ip, location, owner string) error {
 	return nil
 }
 
-func Update_kvm_status(hostname string, status string) {
+func SetHighFPS(hostname string, state bool) error {
+	_, err := method.Exec("UPDATE kvm SET high_frame_rate = ? WHERE hostname = ?", state, hostname)
+	if err != nil {
+		logger.Error("Update kvm high frame rate error: " + err.Error())
+		return err
+	}
+	return nil
+}
+
+func UpdateStatus(hostname string, status string) {
 	_, err := method.Exec("UPDATE kvm SET stream_status = ? WHERE hostname = ?", status, hostname)
 	if err != nil {
 		logger.Error("Update kvm status error: " + err.Error())
 	}
 }
 
-func GetKvmStatus(hostname string) (kvmTemplate structure.Kvm) {
-	KVM, err := method.Query("SELECT hostname, stream_url, stream_status, stream_interface FROM kvm where hostname = " + "'" + hostname + "'")
+func GetStatus(hostname string) (kvm structure.Kvm) {
+	data, err := method.Query("SELECT hostname, stream_url, stream_status, stream_interface, high_frame_rate FROM kvm where hostname = " + "'" + hostname + "'")
 	if err != nil {
 		logger.Error("Query kvm " + hostname + " error: " + err.Error())
 	}
-	for KVM.Next() {
-		err := KVM.Scan(&kvmTemplate.Hostname, &kvmTemplate.StreamUrl, &kvmTemplate.StreamStatus, &kvmTemplate.StreamInterface)
+	for data.Next() {
+		err := data.Scan(&kvm.Hostname, &kvm.StreamUrl, &kvm.StreamStatus, &kvm.StreamInterface, &kvm.HighFrameRate)
 		if err != nil {
 			logger.Error(err.Error())
 			return
 		}
 	}
-	return kvmTemplate
+	return kvm
 }
 
-func Get_recording_kvms() (kvms []structure.Kvm) {
-	Recording_list, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where stream_status = 'recording'")
+func GetRecordingKvms() (kvms []structure.Kvm) {
+	recordingList, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where stream_status = 'recording'")
 	if err != nil {
 		logger.Error("Query idle kvm error: " + err.Error())
 	}
-	for Recording_list.Next() {
+	for recordingList.Next() {
 		var tmp = structure.Kvm{}
-		err := Recording_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
+		err := recordingList.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -74,14 +83,14 @@ func Get_recording_kvms() (kvms []structure.Kvm) {
 	return kvms
 }
 
-func Get_idle_kvms() (kvms []structure.Kvm) {
-	Idle_list, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where stream_status = 'idle'")
+func GetIdleKvms() (kvms []structure.Kvm) {
+	idleList, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm where stream_status = 'idle'")
 	if err != nil {
 		logger.Error("Query idle kvm error: " + err.Error())
 	}
-	for Idle_list.Next() {
+	for idleList.Next() {
 		var tmp = structure.Kvm{}
-		err := Idle_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
+		err := idleList.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -91,14 +100,14 @@ func Get_idle_kvms() (kvms []structure.Kvm) {
 	return kvms
 }
 
-func Get_all_kvms() (kvms []structure.Kvm) {
-	All_list, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm")
+func GetAllKvms() (kvms []structure.Kvm) {
+	allList, err := method.Query("SELECT hostname,stream_url,stream_status,stream_interface FROM kvm")
 	if err != nil {
 		logger.Error("Query idle kvm error: " + err.Error())
 	}
-	for All_list.Next() {
+	for allList.Next() {
 		var tmp = structure.Kvm{}
-		err := All_list.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
+		err := allList.Scan(&tmp.Hostname, &tmp.StreamUrl, &tmp.StreamStatus, &tmp.StreamInterface)
 		if err != nil {
 			logger.Error(err.Error())
 			return
@@ -108,32 +117,32 @@ func Get_all_kvms() (kvms []structure.Kvm) {
 	return kvms
 }
 
-func Get_all_Floor_from_hostname() map[string]int {
-	Floors := make(map[string]int)
-	Projects, err := method.Query("SELECT hostname FROM kvm")
+func GetAllFloorFromHostname() map[string]int {
+	floors := make(map[string]int)
+	projects, err := method.Query("SELECT hostname FROM kvm")
 	if err != nil {
 		logger.Error("Query all project error: " + err.Error())
-		return Floors
+		return floors
 	}
-	for Projects.Next() {
+	for projects.Next() {
 		var Floor string
-		err = Projects.Scan(&Floor)
+		err = projects.Scan(&Floor)
 		if err != nil {
 			logger.Error(err.Error())
-			return Floors
+			return floors
 		}
-		String_list := strings.Split(Floor, "_")
-		_, ok := Floors[String_list[0]]
+		stringList := strings.Split(Floor, "_")
+		_, ok := floors[stringList[0]]
 		if ok {
-			Floors[String_list[0]]++
+			floors[stringList[0]]++
 		} else {
-			Floors[String_list[0]] = 1
+			floors[stringList[0]] = 1
 		}
 	}
-	return Floors
+	return floors
 }
 
-func Get_hostnames_by_floor(floor string) []string {
+func GetHostnamesByFloor(floor string) []string {
 	var Hostnames []string
 	hostnames, err := method.Query("SELECT hostname FROM kvm")
 	if err != nil {
@@ -154,7 +163,7 @@ func Get_hostnames_by_floor(floor string) []string {
 	}
 	return Hostnames
 }
-func Get_link_status(hostnames []string) []bool {
+func GetLinkStatus(hostnames []string) []bool {
 	var Links []bool
 	for _, v := range hostnames {
 		exist := method.QueryRow("SELECT EXISTS(SELECT uuid FROM debug_unit WHERE hostname=?)", v)
@@ -168,7 +177,7 @@ func Get_link_status(hostnames []string) []bool {
 	}
 	return Links
 }
-func Get_messagecount(hostnames []string) []int {
+func GetMessageCount(hostnames []string) []int {
 	var Counts []int
 	for _, v := range hostnames {
 		exist := method.QueryRow("SELECT COUNT(message) FROM kvm_message where hostname=?;", v)
@@ -182,19 +191,19 @@ func Get_messagecount(hostnames []string) []int {
 	}
 	return Counts
 }
-func Insert_message(hostname string, message string) {
+func InsertMessage(hostname string, message string) {
 	_, err := method.Exec("INSERT INTO kvm_message (hostname, message) VALUES (?,?)", hostname, message)
 	if err != nil {
 		logger.Error("Inserting message error: " + err.Error())
 	}
 }
-func Delete_message(hostname string, message string) {
+func DeleteMessage(hostname string, message string) {
 	_, err := method.Exec("delete from kvm_message where hostname=? and message=?", hostname, message)
 	if err != nil {
 		logger.Error("Deleting message error: " + err.Error())
 	}
 }
-func Get_kvm_message(hostname string) []string {
+func GetMessage(hostname string) []string {
 	var Messages []string
 	rows, err := method.Query("SELECT message FROM kvm_message where hostname=?", hostname)
 	if err != nil {
@@ -223,9 +232,9 @@ func GetIP(hostname string) string {
 }
 
 func GetStreamStatus(hostname string) (string, error) {
-	Status := method.QueryRow("SELECT stream_status FROM kvm where hostname = ?", hostname)
+	data := method.QueryRow("SELECT stream_status FROM kvm where hostname = ?", hostname)
 	var status string
-	err := Status.Scan(&status)
+	err := data.Scan(&status)
 	if err != nil {
 		logger.Error("Reading kvm error: " + err.Error())
 		return "", err

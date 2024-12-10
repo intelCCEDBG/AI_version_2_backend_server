@@ -120,7 +120,7 @@ func AddDebugUnit(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"uuid": uuid})
 }
 
-func Project_list(c *gin.Context) {
+func ProjectList(c *gin.Context) {
 	var Project_list Project_list_response
 	rows, err := method.Query("SELECT project_name FROM project;")
 	if err != nil {

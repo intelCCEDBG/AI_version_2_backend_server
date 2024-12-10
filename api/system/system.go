@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Get_CPU_status(c *gin.Context) {
+func GetCPUStatus(c *gin.Context) {
 	query := `/api/v1/query?query=100%20*%20(1%20-%20avg%20by%20(instance)%20(rate(node_cpu_seconds_total{mode="idle"}[1m])))`
 	ip := config.Viper.GetString("PROMETHEUS_IP")
 	port := config.Viper.GetString("PROMETHEUS_PORT")

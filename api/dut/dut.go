@@ -256,23 +256,6 @@ func SetDutMachineStatus(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func SetDutHighFrameRate(c *gin.Context) {
-	machineName := c.Query("dut")
-	highFrameRate := c.Query("state")
-	state := false
-	if highFrameRate == "true" {
-		state = true
-	}
-	// stop the recording
-
-	err := dut_query.UpdateDutFramerateSetting(machineName, state)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "success"})
-}
-
 type freezeCheckRequest struct {
 	MachineName string    `json:"dut"`
 	Hostname    string    `json:"kvm"`
@@ -283,7 +266,7 @@ func FreezeCheck(c *gin.Context) {
 	var req freezeCheckRequest
 	c.BindJSON(&req)
 	logger.Info("FreezeCheck request: " + fmt.Sprintf("%+v", req))
-	kvm := kvm_query.GetKvmStatus(req.Hostname)
+	kvm := kvm_query.GetStatus(req.Hostname)
 	freezed, err := ai.FreezeCheck(req.MachineName, req.Coords, kvm)
 	if err != nil {
 		apiservice.ResponseWithJson(c.Writer, http.StatusInternalServerError, err.Error())

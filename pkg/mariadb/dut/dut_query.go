@@ -15,15 +15,6 @@ func UpdateDutStatus(machineName string, status int) {
 	}
 }
 
-func UpdateDutFramerateSetting(machineName string, status bool) error {
-	_, err := method.Exec("UPDATE machine SET high_frame_rate = ? WHERE machine_name = ?", status, machineName)
-	if err != nil {
-		logger.Error("Update DUT status error: " + err.Error())
-		return err
-	}
-	return nil
-}
-
 func UpdateAIResult(machineName string, status int64, coords []float64, pixelChange bool) {
 	coordsStr := ""
 	for i := 0; i < len(coords); i++ {
@@ -165,7 +156,7 @@ func GetAllDutStatus() (dutTemplate []structure.DUT) {
 	return dutTemplate
 }
 
-func Clean_Cycle_Count(machineName string) {
+func CleanCycleCount(machineName string) {
 	logger.Info("Clean Cycle...")
 	_, err := method.Exec("UPDATE machine SET cycle_cnt = ? WHERE machine_name = ?", 0, machineName)
 	if err != nil {

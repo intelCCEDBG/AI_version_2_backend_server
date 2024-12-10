@@ -135,7 +135,7 @@ func AddKvm(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "kvm added successfully"})
 }
 
-func Kvm_list(c *gin.Context) {
+func KvmList(c *gin.Context) {
 	extra := c.Query("extra")
 	var Kvm_list Kvmlist_Response
 	if extra == "empty" {
@@ -162,7 +162,7 @@ func Kvm_list(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Kvm_list)
 }
 
-func Kvm_all_info(c *gin.Context) {
+func KvmAllInfo(c *gin.Context) {
 	var Kvm_list []Kvm
 	rows, err := method.Query("SELECT * FROM kvm;")
 	if err != nil {
@@ -179,7 +179,7 @@ func Kvm_all_info(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Kvm_list)
 }
 
-func Kvm_info(c *gin.Context) {
+func KvmInfo(c *gin.Context) {
 	hostname := c.Query("hostname")
 	rows := method.QueryRow("SELECT * FROM kvm WHERE hostname=?", hostname)
 	var tmp Kvm
@@ -190,7 +190,7 @@ func Kvm_info(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, tmp)
 }
 
-func Kvm_search(c *gin.Context) {
+func KvmSearch(c *gin.Context) {
 	hostname := c.Query("hostname")
 	var res apiservice.DebugUnit
 	row := method.QueryRow("SELECT hostname, ip, machine_name FROM debug_unit WHERE hostname=?", hostname)
@@ -201,7 +201,7 @@ func Kvm_search(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, res)
 }
 
-func Kvm_mapping(c *gin.Context) {
+func KvmMapping(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Read kvm mapping request error: " + err.Error())
@@ -252,7 +252,7 @@ func Kvm_mapping(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Kvm_delete(c *gin.Context) {
+func KvmDelete(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		logger.Error("Update kvm mapping error: " + err.Error())
@@ -618,7 +618,7 @@ func KvmCsvMapping(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Kvm_status(c *gin.Context) {
+func KvmStatus(c *gin.Context) {
 	action := c.Query("action")
 	var Resp Kvm_state
 	var Req Kvm_state
@@ -707,7 +707,7 @@ func Kvm_status(c *gin.Context) {
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "update successfully")
 }
-func Kvm_genvideo(c *gin.Context) {
+func KvmGenVideo(c *gin.Context) {
 	var Req Video_info
 	Req.Hostname = c.Query("kvm_hostname")
 	Req.Hour, _ = strconv.Atoi(c.Query("hour"))
@@ -718,7 +718,7 @@ func Kvm_genvideo(c *gin.Context) {
 	videogen.GenerateVideo(Req.Hour, Req.Minute, Req.Duration, Req.Hostname, "self-define")
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Kvm_genminutevideo(c *gin.Context) {
+func KvmGenMinuteVideo(c *gin.Context) {
 	var Req Video_info
 	Req.Hostname = c.Query("kvm_hostname")
 	Req.Hour, _ = strconv.Atoi(c.Query("hour"))
@@ -730,7 +730,7 @@ func Kvm_genminutevideo(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
-func Project_status(c *gin.Context) { //start entry point
+func ProjectStatus(c *gin.Context) { //start entry point
 	body, _ := io.ReadAll(c.Request.Body)
 	var Req Proj_exec
 	_ = json.Unmarshal(body, &Req)
@@ -748,22 +748,20 @@ func Project_status(c *gin.Context) { //start entry point
 				logger.Error(err.Error())
 			}
 			req.Stream_status = "recording"
-			json_data, err := json.Marshal(req)
-			// logger.Info("Enter...")
+			jsonData, err := json.Marshal(req)
 			unit := unit_query.GetUnitByHostname(req.Hostname)
-			dut_query.Clean_Cycle_Count(unit.MachineName)
+			dut_query.CleanCycleCount(unit.MachineName)
 			if err != nil {
 				logger.Error(err.Error())
 			}
-			Port := config.Viper.GetString("SERVER_PORT")
+			port := config.Viper.GetString("SERVER_PORT")
 			// http.DefaultClient.Timeout = time.Second * 20
 			go func(Port string, json_data []byte, Hostname string) {
 				defer wg.Done()
 				http.Post("http://127.0.0.1:"+Port+"/api/kvm/stream_status?action=update", "application/json", bytes.NewBuffer(json_data))
-				// fmt.Println(Hostname)
-			}(Port, json_data, req.Hostname)
+			}(port, jsonData, req.Hostname)
 		}
-		project_query.Add_start_time(Req.Project)
+		project_query.AddStartTime(Req.Project)
 		wg.Wait()
 	} else if Req.Operation == "stop" {
 		rows, err := method.Query("SELECT hostname FROM debug_unit WHERE project=?", Req.Project)
@@ -808,9 +806,9 @@ func KvmModify(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Modify kvm info successfully"})
 }
 
-func Get_KVM_Floor(c *gin.Context) {
+func GetKVMFloor(c *gin.Context) {
 	var Floor_out KVM_floor
-	Floor_map := kvm_query.Get_all_Floor_from_hostname()
+	Floor_map := kvm_query.GetAllFloorFromHostname()
 	for floor := range Floor_map {
 		Floor_out.Floor = append(Floor_out.Floor, floor)
 		Floor_out.Amount = append(Floor_out.Amount, Floor_map[floor])
@@ -818,37 +816,38 @@ func Get_KVM_Floor(c *gin.Context) {
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Floor_out)
 }
 
-func Get_hostnames_by_floor(c *gin.Context) {
+func GetHostnamesByFloor(c *gin.Context) {
 	var Hostnames_out Hostnames
 	floor := c.Query("floor")
-	Hostnames_out.Hostnames = kvm_query.Get_hostnames_by_floor(floor)
-	Hostnames_out.Islinked = kvm_query.Get_link_status(Hostnames_out.Hostnames)
-	Hostnames_out.Messagecount = kvm_query.Get_messagecount(Hostnames_out.Hostnames)
+	Hostnames_out.Hostnames = kvm_query.GetHostnamesByFloor(floor)
+	Hostnames_out.Islinked = kvm_query.GetLinkStatus(Hostnames_out.Hostnames)
+	Hostnames_out.Messagecount = kvm_query.GetMessageCount(Hostnames_out.Hostnames)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Hostnames_out)
 }
-func Insert_message(c *gin.Context) {
+
+func InsertMessage(c *gin.Context) {
 	body, _ := io.ReadAll(c.Request.Body)
 	var Req Message
 	_ = json.Unmarshal(body, &Req)
-	kvm_query.Insert_message(Req.Hostname, Req.Message)
+	kvm_query.InsertMessage(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
-func Get_kvm_message(c *gin.Context) {
+func GetKvmMessage(c *gin.Context) {
 	var Messages_out Messages
 	hostname := c.Query("hostname")
 	Messages_out.Hostname = hostname
-	Messages_out.Messages = kvm_query.Get_kvm_message(hostname)
+	Messages_out.Messages = kvm_query.GetMessage(hostname)
 	if Messages_out.Messages == nil {
 		empty := []string{}
 		Messages_out.Messages = empty
 	}
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, Messages_out)
 }
-func Delete_message(c *gin.Context) {
+func DeleteMessage(c *gin.Context) {
 	body, _ := io.ReadAll(c.Request.Body)
 	var Req Message
 	_ = json.Unmarshal(body, &Req)
-	kvm_query.Delete_message(Req.Hostname, Req.Message)
+	kvm_query.DeleteMessage(Req.Hostname, Req.Message)
 	apiservice.ResponseWithJson(c.Writer, http.StatusOK, "")
 }
 
@@ -870,4 +869,22 @@ func CheckKvmHostname(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"exists": exists})
+}
+
+func SetHighFPS(c *gin.Context) {
+	hostname := c.Query("hostname")
+	s := c.Query("state")
+	state, err := strconv.ParseBool(s)
+	if err != nil {
+		logger.Error("Parse bool error: " + err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// update database
+	err = kvm_query.SetHighFPS(hostname, state)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Set high fps successfully"})
 }

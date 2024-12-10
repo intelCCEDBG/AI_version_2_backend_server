@@ -69,6 +69,7 @@ func GenerateVideo(hour int, minute int, duration int, hostname string, filename
 	}
 	f.WriteString("#EXT-X-ENDLIST")
 }
+
 func GenerateErrorVideo(hour int, minute int, duration int, hostname string, machine_name string, filename string) {
 	logger.Info("Machine " + machine_name + " Fail !" + strconv.Itoa(hour) + " " + strconv.Itoa(minute))
 	recording_path := config.Viper.GetString("recording_path")

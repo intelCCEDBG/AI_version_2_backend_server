@@ -50,10 +50,18 @@ func Record(ch chan string, mh structure.Kvm, ctx context.Context) {
 		}
 	}
 	dut_query.SetDutStatusFromKvm(4, mh)
+	rate := "3"
+	if mh.HighFrameRate {
+		rate = "60"
+	}
 	reso := "scale=320:180"
-	cmd := exec.Command("ffmpeg", "-loglevel", "quiet", "-r", "3", "-y", "-i", url,
-		"-codec", "libx264", "-preset", "ultrafast", "-g", "30", "-f", "hls", "-hls_time", "10", "-hls_list_size", "0", "-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
-		"-r", "0.3", "-update", "1", ramdisk_path+hostname+".png", "-r", "0.2", "-update", "1", slow_path+hostname+".png", "-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
+	cmd := exec.Command("ffmpeg", "-loglevel", "quiet",
+		"-r", rate, "-y", "-i", url, "-codec", "libx264", "-preset", "ultrafast", "-g", "30",
+		"-f", "hls", "-hls_time", "10", "-hls_list_size", "8640", "-hls_flags", "delete_segments", "-hls_flags", "omit_endlist",
+		"-strftime", "1", "-hls_segment_filename", video_path+"%Y-%m-%d_%H-%M-%S.ts", video_path+"all.m3u8",
+		"-r", "0.3", "-update", "1", ramdisk_path+hostname+".png",
+		"-r", "0.2", "-update", "1", slow_path+hostname+".png",
+		"-vf", reso, "-r", "1", "-update", "1", image_path+hostname+"_low.png")
 	cmd2 := exec.Command("ffmpeg", "-loglevel", "quiet", "-y", "-i", url, "-vframes", "1", image_path+"cover.png")
 	in, err := cmd.StdinPipe()
 	if err != nil {

@@ -156,7 +156,7 @@ func Get_kvms(project string) []structure.Kvm {
 			logger.Error(err.Error())
 			return KVMS
 		}
-		d := kvm_query.GetKvmStatus(Tmp)
+		d := kvm_query.GetStatus(Tmp)
 		KVMS = append(KVMS, d)
 	}
 	return KVMS
@@ -195,7 +195,7 @@ func Get_Units(project string) []structure.UnitDetail {
 		}
 		unit.MachineName = dut_query.GetDutStatus(Tmp)
 		unit.Ip = Tmp3
-		unit.Hostname = kvm_query.GetKvmStatus(Tmp2)
+		unit.Hostname = kvm_query.GetStatus(Tmp2)
 		unit.Project = project
 		UNITS = append(UNITS, unit)
 	}
@@ -236,7 +236,7 @@ func Delete_project(project string) {
 		logger.Error("Delete project error: " + err.Error())
 	}
 }
-func Add_start_time(project string) {
+func AddStartTime(project string) {
 	_, err := method.Exec("UPDATE project SET start_time = ? WHERE project_name = ?", time.Now().Format("2006-01-02 15:04:05"), project)
 	if err != nil {
 		logger.Error("INSERT project error: " + err.Error())
